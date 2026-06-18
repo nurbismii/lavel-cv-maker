@@ -1,0 +1,42 @@
+<div class="repeat-item" data-repeat-item>
+    <div class="repeat-item-header">
+        <strong>Pengalaman Kerja</strong>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-repeat-remove>
+            <i class="bi bi-trash me-1"></i> Hapus
+        </button>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Nama Posisi/Jabatan</label>
+            <input type="text" name="experiences[{{ $index }}][position]" class="form-control" value="{{ $item['position'] ?? '' }}" placeholder="Mechanical Technician">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Nama Perusahaan</label>
+            <input type="text" name="experiences[{{ $index }}][company]" class="form-control" value="{{ $item['company'] ?? 'PT VDNI' }}" placeholder="PT VDNI">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Departemen</label>
+            <input type="text" name="experiences[{{ $index }}][department]" class="form-control" value="{{ $item['department'] ?? '' }}" placeholder="Smelter">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Mulai</label>
+            <input type="month" name="experiences[{{ $index }}][start_month]" class="form-control" value="{{ $item['start_month'] ?? '' }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Selesai</label>
+            <input type="month" name="experiences[{{ $index }}][end_month]" class="form-control" value="{{ $item['end_month'] ?? '' }}" data-current-target>
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="exp_current_{{ $index }}" name="experiences[{{ $index }}][is_current]" value="1" data-current-checkbox {{ !empty($item['is_current']) ? 'checked' : '' }}>
+                <label class="form-check-label" for="exp_current_{{ $index }}">Masih bekerja sampai sekarang</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Tanggung Jawab</label>
+            <textarea name="experiences[{{ $index }}][responsibilities]" rows="4" class="form-control" placeholder="Tulis maksimal 5 baris, satu tanggung jawab per baris">{{ $item['responsibilities'] ?? '' }}</textarea>
+            <div class="form-text">Tekan Enter untuk baris baru</div>
+        </div>
+    </div>
+</div>

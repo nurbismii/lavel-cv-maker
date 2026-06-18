@@ -30,4 +30,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'vpeople' => [
+        'account_sync_enabled' => env('VPEOPLE_ACCOUNT_SYNC_ENABLED', false),
+        'login_enabled' => env('VPEOPLE_LOGIN_ENABLED', false),
+        'default_role_id' => env('VPEOPLE_DEFAULT_ROLE_ID', 16),
+        'default_status' => env('VPEOPLE_DEFAULT_STATUS', 'aktif'),
+    ],
+
 ];
