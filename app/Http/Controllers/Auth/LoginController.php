@@ -116,7 +116,7 @@ class LoginController extends Controller
             }
 
             if (User::where('email', $email)->exists()) {
-                throw new VPeopleAccountException('Email V-People sudah digunakan oleh akun CV HRIS lain.');
+                throw new VPeopleAccountException('Email V-People sudah digunakan oleh akun Vitae lain.');
             }
 
             return $provisioningService->createFromVPeopleEmployee($employee, $email);

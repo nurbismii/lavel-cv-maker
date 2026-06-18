@@ -1,9 +1,10 @@
 @php
-    $displayName = trim((string) $user->name) ?: 'Karyawan';
-    $preview = 'Verifikasi email Anda untuk mengaktifkan akun CV HRIS.';
+$displayName = trim((string) $user->name) ?: 'Karyawan';
+$preview = 'Verifikasi email Anda untuk mengaktifkan akun Vitae.';
 @endphp
 <!doctype html>
 <html lang="id">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,6 +29,7 @@
         }
     </style>
 </head>
+
 <body style="margin:0; padding:0; background:#f8fafc; color:#0f172a; font-family:Arial, Helvetica, sans-serif;">
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
         {{ $preview }}
@@ -93,7 +95,7 @@
                                             <tr>
                                                 <td style="padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;">
                                                     <div style="font-size:13px; line-height:1.55; color:#475569;">
-                                                        Link ini berlaku selama <strong>{{ $expirationMinutes }} menit</strong>. Setelah email terverifikasi, akses dashboard dan fitur CV HRIS akan aktif.
+                                                        Link ini berlaku selama <strong>{{ $expirationMinutes }} menit</strong>. Setelah email terverifikasi, akses dashboard dan fitur Vitae akan aktif.
                                                     </div>
                                                 </td>
                                             </tr>
@@ -120,7 +122,7 @@
                         <td align="center" style="padding:18px 12px 0 12px; color:#94a3b8; font-size:12px; line-height:1.6;">
                             Email otomatis dari {{ $appName }}. Jangan membalas email ini.
                             @if ($supportEmail)
-                                <br>Pengirim: {{ $supportEmail }}
+                            <br>Pengirim: {{ $supportEmail }}
                             @endif
                         </td>
                     </tr>
@@ -129,4 +131,5 @@
         </tr>
     </table>
 </body>
+
 </html>

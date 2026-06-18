@@ -21,8 +21,8 @@ class VerifyEmailNotification extends Notification
     public function toMail($notifiable)
     {
         $appName = config('app.name') === 'Laravel'
-            ? 'CV HRIS'
-            : config('app.name', 'CV HRIS');
+            ? 'Vitae'
+            : config('app.name', 'Vitae');
 
         return (new MailMessage)
             ->subject('Verifikasi Email ' . $appName)

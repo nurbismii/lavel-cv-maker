@@ -50,13 +50,13 @@ class VPeopleAccountService
     public function ensureAccountForUser(User $user): array
     {
         if (!$user->vpeople_nik_encrypted) {
-            throw new VPeopleAccountException('Data NIK V-People tidak ditemukan pada akun CV HRIS.');
+            throw new VPeopleAccountException('Data NIK V-People tidak ditemukan pada akun Vitae.');
         }
 
         try {
             $nik = Crypt::decryptString($user->vpeople_nik_encrypted);
         } catch (Throwable $exception) {
-            throw new VPeopleAccountException('Data NIK V-People pada akun CV HRIS tidak valid.');
+            throw new VPeopleAccountException('Data NIK V-People pada akun Vitae tidak valid.');
         }
 
         $employee = $this->vpeopleService->findActiveEmployeeByNik($nik);
@@ -231,9 +231,9 @@ class VPeopleAccountService
             $id = Str::random(32);
         } while (
             DB::connection('vpeople')
-                ->table('users')
-                ->where('id', $id)
-                ->exists()
+            ->table('users')
+            ->where('id', $id)
+            ->exists()
         );
 
         return $id;

@@ -1,26 +1,31 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', config('app.name', 'CV HRIS'))</title>
+    <title>@yield('title', config('app.name', 'Vitae'))</title>
 
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/cv-hris-icon.svg') }}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ file_exists(public_path('mix-manifest.json')) ? mix('css/app.css') : asset('css/app.css') }}" rel="stylesheet">
     @stack('styles')
 </head>
+
 <body>
     <div class="app-shell">
         <nav class="app-navbar navbar navbar-expand-lg">
             <div class="container-fluid app-container">
                 <a class="navbar-brand app-brand" href="{{ url('/') }}">
-                    <span class="app-brand-mark">CV</span>
+                    <span class="app-brand-mark">
+                        <img src="{{ asset('images/cv-hris-icon.svg') }}" alt="" class="app-brand-icon">
+                    </span>
                     <span>
-                        <span class="app-brand-title">CV HRIS</span>
+                        <span class="app-brand-title">Vitae</span>
                         <span class="app-brand-subtitle">V-People Integrated</span>
                     </span>
                 </a>
@@ -32,26 +37,26 @@
                 <div class="collapse navbar-collapse" id="appNavbar">
                     <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
                         @auth
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-box-arrow-right me-1"></i> Keluar
-                                    </button>
-                                </form>
-                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-box-arrow-right me-1"></i> Keluar
+                                </button>
+                            </form>
+                        </li>
                         @else
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('login') }}">Masuk</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-primary btn-sm" href="{{ route('register') }}">
-                                    <i class="bi bi-person-plus me-1"></i> Daftar
-                                </a>
-                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('login') }}">Masuk</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-primary btn-sm" href="{{ route('register') }}">
+                                <i class="bi bi-person-plus me-1"></i> Daftar
+                            </a>
+                        </li>
                         @endauth
                     </ul>
                 </div>
@@ -61,17 +66,17 @@
         <main class="app-main">
             <div class="container-fluid app-container">
                 @if (session('success'))
-                    <div class="alert alert-success app-alert" role="alert">
-                        <strong>Berhasil.</strong>
-                        <div>{{ session('success') }}</div>
-                    </div>
+                <div class="alert alert-success app-alert" role="alert">
+                    <strong>Berhasil.</strong>
+                    <div>{{ session('success') }}</div>
+                </div>
                 @endif
 
                 @if (session('error'))
-                    <div class="alert alert-danger app-alert" role="alert">
-                        <strong>Gagal.</strong>
-                        <div>{{ session('error') }}</div>
-                    </div>
+                <div class="alert alert-danger app-alert" role="alert">
+                    <strong>Gagal.</strong>
+                    <div>{{ session('error') }}</div>
+                </div>
                 @endif
 
                 @yield('content')
@@ -84,4 +89,5 @@
     <script src="{{ file_exists(public_path('mix-manifest.json')) ? mix('js/app.js') : asset('js/app.js') }}"></script>
     @stack('scripts')
 </body>
+
 </html>

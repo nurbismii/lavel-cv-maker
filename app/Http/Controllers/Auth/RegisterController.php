@@ -115,6 +115,6 @@ class RegisterController extends Controller
 
         return redirect()
             ->route('verification.notice')
-            ->with('success', 'Akun CV HRIS berhasil dibuat. Silakan cek email untuk mengaktifkan akun.');
+            ->with('success', 'Akun Vitae berhasil dibuat. Silakan cek email untuk mengaktifkan akun.');
     }
 }

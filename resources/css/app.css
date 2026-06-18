@@ -57,10 +57,14 @@ body {
     display: grid;
     place-items: center;
     border-radius: 14px;
-    background: var(--app-primary);
-    color: #fff;
-    font-weight: 800;
-    letter-spacing: .02em;
+    background: transparent;
+    overflow: hidden;
+}
+
+.app-brand-icon {
+    width: 40px;
+    height: 40px;
+    display: block;
 }
 
 .app-brand-title,
