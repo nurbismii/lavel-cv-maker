@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <meta name="description" content="Lengkapi profil profesionalmu dengan mudah dan cepat agar data, pengalaman, dan keahlianmu tersusun rapi dalam satu tempat." />
+    <meta name="author" content="HR VDNI" />
+
     <title>@yield('title', config('app.name', 'Vitae'))</title>
 
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/cv-hris-icon.svg') }}">
