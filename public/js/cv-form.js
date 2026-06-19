@@ -329,6 +329,12 @@
         return elements.panels.indexOf(panel);
     }
 
+    function initialWizardIndex(elements) {
+        var initialStep = elements.root.dataset.initialStep || '';
+
+        return initialStep ? wizardPanelIndexByKey(elements.panels, initialStep) : -1;
+    }
+
     function setWizardStep(index, options) {
         var elements = wizardElements();
 
@@ -417,7 +423,9 @@
 
         var errorIndex = firstWizardErrorIndex(elements);
 
-        setWizardStep(errorIndex > -1 ? errorIndex : 0, {
+        var initialIndex = initialWizardIndex(elements);
+
+        setWizardStep(errorIndex > -1 ? errorIndex : Math.max(initialIndex, 0), {
             scroll: errorIndex > -1,
         });
     }

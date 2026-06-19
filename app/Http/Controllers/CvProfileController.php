@@ -81,7 +81,7 @@ class CvProfileController extends Controller
         ]);
 
         return redirect()
-            ->route('cv.edit')
+            ->route('cv.edit', ['step' => 'summary'])
             ->with('success', 'Ringkasan profil berhasil dibuat. Silakan cek dan edit jika perlu.');
     }
 
@@ -259,7 +259,7 @@ class CvProfileController extends Controller
                 continue;
             }
 
-            $responsibilities = array_slice($this->splitLines($item['responsibilities'] ?? null), 0, 5);
+            $responsibilities = $this->splitLines($item['responsibilities'] ?? null);
 
             CvExperience::create([
                 'cv_profile_id' => $profile->id,

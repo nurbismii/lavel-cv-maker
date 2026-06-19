@@ -35,7 +35,7 @@
         </div>
         <div class="col-12">
             <label class="form-label">Tanggung Jawab</label>
-            <textarea name="experiences[{{ $index }}][responsibilities]" rows="4" class="form-control" placeholder="Tulis maksimal 5 baris, satu tanggung jawab per baris">{{ $item['responsibilities'] ?? '' }}</textarea>
+            <textarea name="experiences[{{ $index }}][responsibilities]" rows="4" class="form-control" placeholder="Tulis satu tanggung jawab per baris">{{ $item['responsibilities'] ?? '' }}</textarea>
             <div class="form-text">Tekan Enter untuk baris baru</div>
         </div>
     </div>

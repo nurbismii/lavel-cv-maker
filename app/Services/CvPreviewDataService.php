@@ -122,7 +122,7 @@ class CvPreviewDataService
                     'company' => $this->cleanLabel($experience->company),
                     'department' => $this->cleanLabel($experience->department),
                     'period' => $this->period($experience->start_month, $experience->end_month, $experience->is_current),
-                    'responsibilities' => $this->cleanList(array_slice($experience->responsibilities ?: [], 0, 5)),
+                    'responsibilities' => $this->cleanList($experience->responsibilities ?: []),
                 ];
             })
             ->filter(function ($experience) {

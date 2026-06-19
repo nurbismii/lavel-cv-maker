@@ -119,7 +119,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
         <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" novalidate>
             @csrf
 
-            <div class="cv-wizard" data-cv-wizard>
+            <div class="cv-wizard" data-cv-wizard data-initial-step="{{ request('step') }}">
                 <div class="app-card cv-wizard-header mb-4">
                     <div class="app-card-body">
                         <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start mb-3">
@@ -144,46 +144,46 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                     <span class="cv-wizard-step-subtitle">Identitas & kontak</span>
                                 </span>
                             </button>
-                            <button type="button" class="cv-wizard-step" data-wizard-step-target="summary">
-                                <span class="cv-wizard-step-number">2</span>
-                                <span class="cv-wizard-step-text">
-                                    <span class="cv-wizard-step-title">Ringkasan</span>
-                                    <span class="cv-wizard-step-subtitle">Profil singkat</span>
-                                </span>
-                            </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="experience">
-                                <span class="cv-wizard-step-number">3</span>
+                                <span class="cv-wizard-step-number">2</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Pengalaman</span>
                                     <span class="cv-wizard-step-subtitle">Riwayat kerja</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="education">
-                                <span class="cv-wizard-step-number">4</span>
+                                <span class="cv-wizard-step-number">3</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Pendidikan</span>
                                     <span class="cv-wizard-step-subtitle">Riwayat akademik</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="skills">
-                                <span class="cv-wizard-step-number">5</span>
+                                <span class="cv-wizard-step-number">4</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Keahlian</span>
                                     <span class="cv-wizard-step-subtitle">Teknis & non-teknis</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="certifications">
-                                <span class="cv-wizard-step-number">6</span>
+                                <span class="cv-wizard-step-number">5</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Sertifikasi</span>
                                     <span class="cv-wizard-step-subtitle">Pelatihan</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="extras">
-                                <span class="cv-wizard-step-number">7</span>
+                                <span class="cv-wizard-step-number">6</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Tambahan</span>
                                     <span class="cv-wizard-step-subtitle">Bahasa & proyek</span>
+                                </span>
+                            </button>
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="summary">
+                                <span class="cv-wizard-step-number">7</span>
+                                <span class="cv-wizard-step-text">
+                                    <span class="cv-wizard-step-title">Ringkasan</span>
+                                    <span class="cv-wizard-step-subtitle">Finalisasi profil</span>
                                 </span>
                             </button>
                         </div>
@@ -353,34 +353,12 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                     </div>
                 </div>
 
-                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="summary" data-wizard-title="Ringkasan Profil">
-                    <div class="app-card-header">
-                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
-                            <div>
-                                <h2 class="app-card-title h5">Ringkasan Profil</h2>
-                                <p class="app-card-subtitle">Maksimal 300 karakter. Bisa dibuat otomatis dari draft yang sedang diisi.</p>
-                            </div>
-                            <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan...">
-                                <i class="bi bi-stars me-1"></i> Generate
-                            </button>
-                        </div>
-                    </div>
-                    <div class="app-card-body">
-                        <textarea name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
-                        <div class="d-flex justify-content-between mt-2">
-                            <small class="text-muted">Tulis ringkas, spesifik, dan profesional.</small>
-                            <small class="text-muted"><span id="summaryCounter">0</span>/300</small>
-                        </div>
-                        @error('profile_summary') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-                    </div>
-                </div>
-
                 <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="experience" data-wizard-title="Pengalaman Kerja">
                     <div class="app-card-header">
                         <div class="d-flex justify-content-between gap-3 align-items-start">
                             <div>
                                 <h2 class="app-card-title h5">Pengalaman Kerja</h2>
-                                <p class="app-card-subtitle">Tanggung jawab maksimal 5 baris per pengalaman.</p>
+                                <p class="app-card-subtitle">Tulis tanggung jawab utama per pengalaman kerja.</p>
                             </div>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences">
                                 <i class="bi bi-plus-lg me-1"></i> Tambah
@@ -508,6 +486,28 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 @endforeach
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="summary" data-wizard-title="Ringkasan Profil">
+                    <div class="app-card-header">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
+                            <div>
+                                <h2 class="app-card-title h5">Ringkasan Profil</h2>
+                                <p class="app-card-subtitle">Maksimal 300 karakter. Generate setelah data utama diisi agar hasilnya lebih relevan.</p>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan...">
+                                <i class="bi bi-stars me-1"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                    <div class="app-card-body">
+                        <textarea name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Tulis ringkas, spesifik, dan profesional.</small>
+                            <small class="text-muted"><span id="summaryCounter">0</span>/300</small>
+                        </div>
+                        @error('profile_summary') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                     </div>
                 </div>
             </div>
