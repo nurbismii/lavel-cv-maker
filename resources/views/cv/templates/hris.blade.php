@@ -45,16 +45,17 @@
                         @if ($experience['department'])
                             <span>|</span> {{ $experience['department'] }}
                         @endif
+                        @if ($experience['division'])
+                            <span>|</span> {{ $experience['division'] }}
+                        @endif
                         @if ($experience['period'])
                             <span>|</span> {{ $experience['period'] }}
                         @endif
                     </p>
-                    @if (count($experience['responsibilities']))
-                        <ul class="cv-output-list">
-                            @foreach ($experience['responsibilities'] as $responsibility)
-                                <li>{{ $responsibility }}</li>
-                            @endforeach
-                        </ul>
+                    @if ($experience['responsibilities_html'])
+                        <div class="cv-output-rich-text">
+                            {!! $experience['responsibilities_html'] !!}
+                        </div>
                     @endif
                 </div>
             @endforeach

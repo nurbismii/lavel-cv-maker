@@ -11,7 +11,9 @@ use App\Models\CvOrganization;
 use App\Models\CvProfile;
 use App\Models\CvProject;
 use App\Services\CvSummaryService;
+use App\Services\VPeopleService;
 use App\Services\VPeopleLocationService;
+use App\Support\CvResponsibilityRichText;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -22,9 +24,10 @@ use Illuminate\Validation\ValidationException;
 
 class CvProfileController extends Controller
 {
-    public function edit(Request $request, VPeopleLocationService $locationService)
+    public function edit(Request $request, VPeopleLocationService $locationService, VPeopleService $vpeopleService)
     {
         $profile = $this->profileFor($request);
+        $this->syncProfileOrganizationFromVPeople($request, $profile, $vpeopleService);
 
         $profile->load([
             'experiences',
@@ -46,9 +49,10 @@ class CvProfileController extends Controller
         ]);
     }
 
-    public function saveDraft(SaveCvProfileRequest $request, VPeopleLocationService $locationService)
+    public function saveDraft(SaveCvProfileRequest $request, VPeopleLocationService $locationService, VPeopleService $vpeopleService)
     {
         $profile = $this->profileFor($request);
+        $this->syncProfileOrganizationFromVPeople($request, $profile, $vpeopleService);
 
         $this->persistDraft($request, $profile, $locationService);
 
@@ -60,10 +64,12 @@ class CvProfileController extends Controller
     public function generateSummary(
         SaveCvProfileRequest $request,
         CvSummaryService $summaryService,
-        VPeopleLocationService $locationService
+        VPeopleLocationService $locationService,
+        VPeopleService $vpeopleService
     )
     {
         $profile = $this->profileFor($request);
+        $this->syncProfileOrganizationFromVPeople($request, $profile, $vpeopleService);
 
         $this->persistDraft($request, $profile, $locationService);
 
@@ -85,9 +91,10 @@ class CvProfileController extends Controller
             ->with('success', 'Ringkasan profil berhasil dibuat. Silakan cek dan edit jika perlu.');
     }
 
-    public function saveAndPreview(SaveCvProfileRequest $request, VPeopleLocationService $locationService)
+    public function saveAndPreview(SaveCvProfileRequest $request, VPeopleLocationService $locationService, VPeopleService $vpeopleService)
     {
         $profile = $this->profileFor($request);
+        $this->syncProfileOrganizationFromVPeople($request, $profile, $vpeopleService);
 
         $this->persistDraft($request, $profile, $locationService);
 
@@ -116,6 +123,39 @@ class CvProfileController extends Controller
             return Crypt::decryptString($request->user()->vpeople_nik_encrypted);
         } catch (\Throwable $exception) {
             return null;
+        }
+    }
+
+    private function syncProfileOrganizationFromVPeople(
+        Request $request,
+        CvProfile $profile,
+        VPeopleService $vpeopleService
+    ): void {
+        $nik = $this->vpeopleNik($request);
+
+        if (!$nik) {
+            return;
+        }
+
+        try {
+            $employee = $vpeopleService->findActiveEmployeeByNik($nik);
+
+            if (!$employee) {
+                return;
+            }
+
+            $profile->forceFill([
+                'department' => $employee['department'],
+                'division' => $employee['division'],
+            ])->save();
+
+            $request->user()->forceFill([
+                'vpeople_last_synced_at' => now(),
+            ])->save();
+        } catch (\Throwable $exception) {
+            Log::warning('V-People organization sync failed.', [
+                'exception' => get_class($exception),
+            ]);
         }
     }
 
@@ -255,17 +295,20 @@ class CvProfileController extends Controller
         $sortOrder = 0;
 
         foreach ($items as $item) {
-            if (!$this->rowHasValue($item, ['position', 'company', 'department', 'start_month', 'end_month', 'responsibilities'])) {
+            $responsibilities = CvResponsibilityRichText::toStorage($item['responsibilities'] ?? null);
+            $itemForCheck = $item;
+            $itemForCheck['responsibilities'] = CvResponsibilityRichText::toPlainText($responsibilities) ?: '';
+
+            if (!$this->rowHasValue($itemForCheck, ['position', 'company', 'start_month', 'end_month', 'responsibilities'])) {
                 continue;
             }
-
-            $responsibilities = $this->splitLines($item['responsibilities'] ?? null);
 
             CvExperience::create([
                 'cv_profile_id' => $profile->id,
                 'position' => $item['position'] ?: null,
                 'company' => $item['company'] ?: 'PT VDNI',
-                'department' => $item['department'] ?: null,
+                'department' => $profile->department ?: null,
+                'division' => $profile->division ?: null,
                 'start_month' => $this->monthDate($item['start_month'] ?? null),
                 'end_month' => !empty($item['is_current']) ? null : $this->monthDate($item['end_month'] ?? null),
                 'is_current' => !empty($item['is_current']),
@@ -403,15 +446,6 @@ class CvProfileController extends Controller
         }
 
         return array_values(array_filter(array_map('trim', preg_split('/[,;\n]+/', $value))));
-    }
-
-    private function splitLines(?string $value): array
-    {
-        if (!$value) {
-            return [];
-        }
-
-        return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $value))));
     }
 
     private function rowHasValue(array $row, array $keys): bool

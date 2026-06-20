@@ -15,10 +15,11 @@ return [
 'position' => $item->position,
 'company' => $item->company,
 'department' => $item->department,
+'division' => $item->division,
 'start_month' => optional($item->start_month)->format('Y-m'),
 'end_month' => optional($item->end_month)->format('Y-m'),
 'is_current' => $item->is_current ? 1 : 0,
-'responsibilities' => implode("\n", $item->responsibilities ?: []),
+'responsibilities' => \App\Support\CvResponsibilityRichText::toEditorHtml($item->responsibilities ?: []),
 ];
 })->toArray());
 
@@ -355,42 +356,38 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
 
                 <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="experience" data-wizard-title="Pengalaman Kerja">
                     <div class="app-card-header">
-                        <div class="d-flex justify-content-between gap-3 align-items-start">
-                            <div>
-                                <h2 class="app-card-title h5">Pengalaman Kerja</h2>
-                                <p class="app-card-subtitle">Tulis tanggung jawab utama per pengalaman kerja.</p>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah
-                            </button>
-                        </div>
+                        <h2 class="app-card-title h5">Pengalaman Kerja</h2>
+                        <p class="app-card-subtitle">Tulis tanggung jawab utama per pengalaman kerja.</p>
                     </div>
                     <div class="app-card-body">
                         <div data-repeat-list="experiences">
                             @foreach ($experiences as $index => $item)
-                            @include('cv.partials.experience-row', ['index' => $index, 'item' => $item])
+                            @include('cv.partials.experience-row', ['index' => $index, 'item' => $item, 'profile' => $profile])
                             @endforeach
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="education" data-wizard-title="Pendidikan">
                     <div class="app-card-header">
-                        <div class="d-flex justify-content-between gap-3 align-items-start">
-                            <div>
-                                <h2 class="app-card-title h5">Pendidikan</h2>
-                                <p class="app-card-subtitle">Data pendidikan dari V-People dapat disesuaikan jika belum lengkap.</p>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="educations">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah
-                            </button>
-                        </div>
+                        <h2 class="app-card-title h5">Pendidikan</h2>
+                        <p class="app-card-subtitle">Data pendidikan dari V-People dapat disesuaikan jika belum lengkap.</p>
                     </div>
                     <div class="app-card-body">
                         <div data-repeat-list="educations">
                             @foreach ($educations as $index => $item)
                             @include('cv.partials.education-row', ['index' => $index, 'item' => $item, 'educationLevels' => $educationLevels, 'yearOptions' => $yearOptions])
                             @endforeach
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="educations">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -416,21 +413,19 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
 
                 <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="certifications" data-wizard-title="Sertifikasi & Pelatihan">
                     <div class="app-card-header">
-                        <div class="d-flex justify-content-between gap-3 align-items-start">
-                            <div>
-                                <h2 class="app-card-title h5">Sertifikasi & Pelatihan</h2>
-                                <p class="app-card-subtitle">Opsional, tetapi membantu memperkuat kualitas CV.</p>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="certifications">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah
-                            </button>
-                        </div>
+                        <h2 class="app-card-title h5">Sertifikasi & Pelatihan</h2>
+                        <p class="app-card-subtitle">Opsional, tetapi membantu memperkuat kualitas CV.</p>
                     </div>
                     <div class="app-card-body">
                         <div data-repeat-list="certifications">
                             @foreach ($certifications as $index => $item)
                             @include('cv.partials.certification-row', ['index' => $index, 'item' => $item, 'yearOptions' => $yearOptions, 'validUntilYearOptions' => $validUntilYearOptions])
                             @endforeach
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="certifications">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -442,48 +437,48 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                     </div>
                     <div class="app-card-body">
                         <div class="repeat-block">
-                            <div class="d-flex justify-content-between gap-3 align-items-center mb-3">
-                                <h3 class="h6 fw-bold mb-0">Bahasa</h3>
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="languages">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah
-                                </button>
-                            </div>
+                            <h3 class="h6 fw-bold mb-3">Bahasa</h3>
                             <div data-repeat-list="languages">
                                 @foreach ($languages as $index => $item)
                                 @include('cv.partials.language-row', ['index' => $index, 'item' => $item, 'languageLevels' => $languageLevels])
                                 @endforeach
                             </div>
+                            <div class="mt-3 text-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="languages">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah
+                                </button>
+                            </div>
                         </div>
 
                         <hr class="my-4">
 
                         <div class="repeat-block">
-                            <div class="d-flex justify-content-between gap-3 align-items-center mb-3">
-                                <h3 class="h6 fw-bold mb-0">Proyek</h3>
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="projects">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah
-                                </button>
-                            </div>
+                            <h3 class="h6 fw-bold mb-3">Proyek</h3>
                             <div data-repeat-list="projects">
                                 @foreach ($projects as $index => $item)
                                 @include('cv.partials.project-row', ['index' => $index, 'item' => $item, 'yearOptions' => $yearOptions])
                                 @endforeach
                             </div>
+                            <div class="mt-3 text-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="projects">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah
+                                </button>
+                            </div>
                         </div>
 
                         <hr class="my-4">
 
                         <div class="repeat-block">
-                            <div class="d-flex justify-content-between gap-3 align-items-center mb-3">
-                                <h3 class="h6 fw-bold mb-0">Organisasi</h3>
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="organizations">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah
-                                </button>
-                            </div>
+                            <h3 class="h6 fw-bold mb-3">Organisasi</h3>
                             <div data-repeat-list="organizations">
                                 @foreach ($organizations as $index => $item)
                                 @include('cv.partials.organization-row', ['index' => $index, 'item' => $item, 'yearOptions' => $yearOptions])
                                 @endforeach
+                            </div>
+                            <div class="mt-3 text-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="organizations">
+                                    <i class="bi bi-plus-lg me-1"></i> Tambah
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -574,6 +569,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
 </div>
 
 @include('cv.partials.templates', [
+'profile' => $profile,
 'educationLevels' => $educationLevels,
 'languageLevels' => $languageLevels,
 'yearOptions' => $yearOptions,

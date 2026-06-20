@@ -1,5 +1,5 @@
 <template data-repeat-template="experiences">
-    @include('cv.partials.experience-row', ['index' => '__INDEX__', 'item' => []])
+    @include('cv.partials.experience-row', ['index' => '__INDEX__', 'item' => [], 'profile' => $profile])
 </template>
 
 <template data-repeat-template="educations">

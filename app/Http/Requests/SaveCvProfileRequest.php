@@ -45,10 +45,11 @@ class SaveCvProfileRequest extends FormRequest
             'experiences.*.position' => ['nullable', 'string', 'max:255'],
             'experiences.*.company' => ['nullable', 'string', 'max:255'],
             'experiences.*.department' => ['nullable', 'string', 'max:255'],
+            'experiences.*.division' => ['nullable', 'string', 'max:255'],
             'experiences.*.start_month' => ['nullable', 'date_format:Y-m'],
             'experiences.*.end_month' => ['nullable', 'date_format:Y-m'],
             'experiences.*.is_current' => ['nullable', 'boolean'],
-            'experiences.*.responsibilities' => ['nullable', 'string', 'max:1500'],
+            'experiences.*.responsibilities' => ['nullable', 'string', 'max:4000'],
 
             'educations' => ['nullable', 'array'],
             'educations.*.level' => ['nullable', 'string', 'max:16'],

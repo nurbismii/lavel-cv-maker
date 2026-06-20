@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CvEducation;
 use App\Models\CvProfile;
 use App\Models\User;
+use App\Support\CvResponsibilityRichText;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
@@ -108,6 +109,9 @@ class CvPreviewDataService
 
     private function experiences(CvProfile $profile): array
     {
+        $profileDepartment = $this->cleanLabel($profile->department);
+        $profileDivision = $this->cleanLabel($profile->division);
+
         return $profile->experiences
             ->sortByDesc(function ($experience) {
                 if ($experience->is_current) {
@@ -116,17 +120,20 @@ class CvPreviewDataService
 
                 return optional($experience->end_month ?: $experience->start_month)->timestamp ?: 0;
             })
-            ->map(function ($experience) {
+            ->map(function ($experience) use ($profileDepartment, $profileDivision) {
+                $responsibilitiesHtml = CvResponsibilityRichText::toOutputHtml($experience->responsibilities ?: []);
+
                 return [
                     'position' => $this->cleanLabel($experience->position),
                     'company' => $this->cleanLabel($experience->company),
-                    'department' => $this->cleanLabel($experience->department),
+                    'department' => $profileDepartment,
+                    'division' => $profileDivision,
                     'period' => $this->period($experience->start_month, $experience->end_month, $experience->is_current),
-                    'responsibilities' => $this->cleanList($experience->responsibilities ?: []),
+                    'responsibilities_html' => $responsibilitiesHtml,
                 ];
             })
             ->filter(function ($experience) {
-                return $experience['position'] || $experience['company'] || $experience['department'] || $experience['period'] || count($experience['responsibilities']);
+                return $experience['position'] || $experience['company'] || $experience['period'] || $experience['responsibilities_html'];
             })
             ->values()
             ->toArray();

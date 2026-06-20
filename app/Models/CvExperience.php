@@ -14,6 +14,7 @@ class CvExperience extends Model
         'position',
         'company',
         'department',
+        'division',
         'start_month',
         'end_month',
         'is_current',
