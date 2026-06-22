@@ -19,7 +19,7 @@ return [
 'start_month' => optional($item->start_month)->format('Y-m'),
 'end_month' => optional($item->end_month)->format('Y-m'),
 'is_current' => $item->is_current ? 1 : 0,
-'responsibilities' => \App\Support\CvResponsibilityRichText::toEditorHtml($item->responsibilities ?: []),
+'responsibilities' => \App\Support\CvResponsibilityRichText::toTextareaText($item->responsibilities ?: []),
 ];
 })->toArray());
 

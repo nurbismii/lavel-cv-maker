@@ -50,7 +50,6 @@
         wrapper.innerHTML = html.trim();
         item = wrapper.firstElementChild;
         list.appendChild(item);
-        initRichTextEditors(item);
         applyCurrentToggles(list);
     }
 
@@ -67,13 +66,6 @@
             }
 
             field.value = '';
-        });
-
-        container.querySelectorAll('[data-rich-text-input]').forEach(function (input) {
-            var editor = input.closest('[data-rich-text-editor]');
-
-            input.innerHTML = '';
-            syncRichTextEditor(editor);
         });
     }
 
@@ -190,97 +182,6 @@
         });
     }
 
-    function richTextHasText(input) {
-        return input.textContent.replace(/\u00a0/g, ' ').trim() !== '';
-    }
-
-    function setRichTextEmptyState(editor) {
-        var input = editor ? editor.querySelector('[data-rich-text-input]') : null;
-
-        if (!input) {
-            return;
-        }
-
-        input.classList.toggle('is-empty', !richTextHasText(input));
-    }
-
-    function syncRichTextEditor(editor) {
-        var input = editor ? editor.querySelector('[data-rich-text-input]') : null;
-        var value = editor ? editor.querySelector('[data-rich-text-value]') : null;
-
-        if (!input || !value) {
-            return;
-        }
-
-        if (!richTextHasText(input)) {
-            input.innerHTML = '';
-        }
-
-        value.value = input.innerHTML.trim();
-        setRichTextEmptyState(editor);
-    }
-
-    function syncAllRichTextEditors(root) {
-        (root || document).querySelectorAll('[data-rich-text-editor]').forEach(function (editor) {
-            syncRichTextEditor(editor);
-        });
-    }
-
-    function initRichTextEditors(root) {
-        (root || document).querySelectorAll('[data-rich-text-editor]').forEach(function (editor) {
-            var input = editor.querySelector('[data-rich-text-input]');
-            var value = editor.querySelector('[data-rich-text-value]');
-
-            if (!input || !value || editor.dataset.richTextReady === '1') {
-                return;
-            }
-
-            editor.dataset.richTextReady = '1';
-
-            if (!input.innerHTML.trim() && value.value) {
-                input.innerHTML = value.value;
-            }
-
-            setRichTextEmptyState(editor);
-        });
-    }
-
-    function runRichTextCommand(button) {
-        var editor = button.closest('[data-rich-text-editor]');
-        var input = editor ? editor.querySelector('[data-rich-text-input]') : null;
-        var command = button.dataset.richTextCommand;
-
-        if (!input || !command) {
-            return;
-        }
-
-        input.focus();
-
-        try {
-            document.execCommand('styleWithCSS', false, false);
-            document.execCommand('defaultParagraphSeparator', false, 'p');
-            document.execCommand(command, false, null);
-        } catch (error) {
-            return;
-        }
-
-        syncRichTextEditor(editor);
-    }
-
-    function pastePlainText(input, text) {
-        var editor = input.closest('[data-rich-text-editor]');
-
-        input.focus();
-
-        try {
-            document.execCommand('insertText', false, text);
-        } catch (error) {
-            input.textContent += text;
-        }
-
-        syncRichTextEditor(editor);
-    }
-
     function updateCounters() {
         document.querySelectorAll('.js-countable').forEach(function (field) {
             var counter = document.querySelector(field.dataset.counter);
@@ -292,7 +193,7 @@
     }
 
     function isFocusableCvField(element) {
-        return element.matches('#cvForm input:not([type="hidden"]), #cvForm textarea, #cvForm select, #cvForm [contenteditable="true"]');
+        return element.matches('#cvForm input:not([type="hidden"]), #cvForm textarea, #cvForm select');
     }
 
     function fieldFocusGroup(field) {
@@ -766,13 +667,6 @@
         var wizardNextButton = event.target.closest('[data-wizard-next]');
         var addButton = event.target.closest('[data-repeat-add]');
         var removeButton = event.target.closest('[data-repeat-remove]');
-        var richTextButton = event.target.closest('[data-rich-text-command]');
-
-        if (richTextButton) {
-            event.preventDefault();
-            runRichTextCommand(richTextButton);
-            return;
-        }
 
         if (wizardStepButton) {
             var stepElements = wizardElements();
@@ -840,27 +734,6 @@
         if (event.target.matches('.js-countable')) {
             updateCounters();
         }
-
-        if (event.target.matches('[data-rich-text-input]')) {
-            syncRichTextEditor(event.target.closest('[data-rich-text-editor]'));
-        }
-    });
-
-    document.addEventListener('paste', function (event) {
-        var input = event.target.closest('[data-rich-text-input]');
-
-        if (!input) {
-            return;
-        }
-
-        event.preventDefault();
-        pastePlainText(input, (event.clipboardData || window.clipboardData).getData('text/plain'));
-    });
-
-    document.addEventListener('submit', function (event) {
-        if (event.target.matches('#cvForm')) {
-            syncAllRichTextEditors(event.target);
-        }
     });
 
     document.addEventListener('focusin', function (event) {
@@ -882,7 +755,6 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         applyCurrentToggles(document);
-        initRichTextEditors(document);
         updateCounters();
         initWizard();
 

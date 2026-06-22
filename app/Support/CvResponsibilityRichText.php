@@ -6,36 +6,34 @@ class CvResponsibilityRichText
 {
     private const HTML_KEY = 'html';
 
-    public static function toStorage(?string $html): array
+    public static function toStorage(?string $text): array
     {
-        $cleanHtml = self::sanitize($html);
-
-        return $cleanHtml ? [self::HTML_KEY => $cleanHtml] : [];
+        return self::textToLines($text);
     }
 
-    public static function toEditorHtml($value): string
+    public static function toTextareaText($value): string
     {
-        return self::normalize($value) ?: '';
+        return implode("\n", self::normalizeLines($value));
     }
 
     public static function toOutputHtml($value): ?string
     {
-        return self::normalize($value);
+        $lines = self::normalizeLines($value);
+
+        if (!count($lines)) {
+            return null;
+        }
+
+        $escapedLines = array_map(function (string $line) {
+            return htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }, $lines);
+
+        return '<ul><li>' . implode('</li><li>', $escapedLines) . '</li></ul>';
     }
 
     public static function toPlainText($value): ?string
     {
-        $html = self::normalize($value);
-
-        if (!$html) {
-            return null;
-        }
-
-        $text = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $html);
-        $text = preg_replace('/<\s*\/\s*(p|li)\s*>/i', "\n", $text);
-        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = str_replace("\xc2\xa0", ' ', $text);
-        $text = trim(preg_replace('/[ \t\r\n]+/', ' ', $text));
+        $text = implode(' ', self::normalizeLines($value));
 
         return $text ?: null;
     }
@@ -88,24 +86,24 @@ class CvResponsibilityRichText
         return self::plainTextFromHtml($html) ? $html : null;
     }
 
-    private static function normalize($value): ?string
+    private static function normalizeLines($value): array
     {
         if (is_array($value)) {
             if (isset($value[self::HTML_KEY])) {
-                return self::sanitize((string) $value[self::HTML_KEY]);
+                return self::htmlToLines((string) $value[self::HTML_KEY]);
             }
 
-            return self::legacyListToHtml($value);
+            return self::arrayToLines($value);
         }
 
         if (is_string($value)) {
-            return self::sanitize($value);
+            return self::textToLines($value);
         }
 
-        return null;
+        return [];
     }
 
-    private static function legacyListToHtml(array $items): ?string
+    private static function arrayToLines(array $items): array
     {
         $lines = [];
 
@@ -114,18 +112,48 @@ class CvResponsibilityRichText
                 continue;
             }
 
-            $line = trim(preg_replace('/\s+/', ' ', (string) $item));
-
-            if ($line !== '') {
-                $lines[] = htmlspecialchars($line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            foreach (self::textToLines((string) $item) as $line) {
+                $lines[] = $line;
             }
         }
 
-        if (!count($lines)) {
-            return null;
+        return $lines;
+    }
+
+    private static function htmlToLines(string $html): array
+    {
+        $html = self::sanitize($html);
+
+        if (!$html) {
+            return [];
         }
 
-        return '<ul><li>' . implode('</li><li>', $lines) . '</li></ul>';
+        $text = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $html);
+        $text = preg_replace('/<\s*\/\s*(p|li)\s*>/i', "\n", $text);
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return self::textToLines($text);
+    }
+
+    private static function textToLines(?string $text): array
+    {
+        if ($text === null) {
+            return [];
+        }
+
+        $text = str_replace(["\0", "\r\n", "\r"], ['', "\n", "\n"], $text);
+        $lines = [];
+
+        foreach (explode("\n", $text) as $line) {
+            $line = str_replace("\xc2\xa0", ' ', $line);
+            $line = trim(preg_replace('/[ \t]+/', ' ', $line));
+
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+
+        return $lines;
     }
 
     private static function plainTextFromHtml(string $html): ?string
