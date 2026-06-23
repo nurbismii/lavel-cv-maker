@@ -547,6 +547,19 @@ body {
     box-shadow: 0 0 0 .2rem rgba(15, 118, 110, .08);
 }
 
+.cv-wizard-step.is-locked {
+    cursor: not-allowed;
+    color: #94a3b8;
+    background: #f8fafc;
+}
+
+.cv-wizard-step.is-locked:hover,
+.cv-wizard-step.is-locked:focus {
+    color: #94a3b8;
+    border-color: var(--app-border);
+    box-shadow: none;
+}
+
 .cv-wizard-step.is-active {
     color: var(--app-dark);
     background: #f0fdfa;
@@ -624,6 +637,14 @@ body {
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: .75rem;
+}
+
+.cv-guide-highlight {
+    position: relative;
+    z-index: 3;
+    outline: 3px solid rgba(37, 99, 235, .38);
+    outline-offset: 4px;
+    border-radius: 10px;
 }
 
 .cv-checklist {

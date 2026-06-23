@@ -126,8 +126,8 @@ class CvPreviewDataService
                 return [
                     'position' => $this->cleanLabel($experience->position),
                     'company' => $this->cleanLabel($experience->company),
-                    'department' => $profileDepartment,
-                    'division' => $profileDivision,
+                    'department' => $this->cleanLabel($experience->department) ?: $profileDepartment,
+                    'division' => $this->cleanLabel($experience->division) ?: $profileDivision,
                     'period' => $this->period($experience->start_month, $experience->end_month, $experience->is_current),
                     'responsibilities_html' => $responsibilitiesHtml,
                 ];

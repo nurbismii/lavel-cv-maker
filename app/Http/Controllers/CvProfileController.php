@@ -13,6 +13,7 @@ use App\Models\CvProject;
 use App\Services\CvSummaryService;
 use App\Services\VPeopleService;
 use App\Services\VPeopleLocationService;
+use App\Services\VPeopleOrganizationService;
 use App\Support\CvResponsibilityRichText;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -24,7 +25,12 @@ use Illuminate\Validation\ValidationException;
 
 class CvProfileController extends Controller
 {
-    public function edit(Request $request, VPeopleLocationService $locationService, VPeopleService $vpeopleService)
+    public function edit(
+        Request $request,
+        VPeopleLocationService $locationService,
+        VPeopleOrganizationService $organizationService,
+        VPeopleService $vpeopleService
+    )
     {
         $profile = $this->profileFor($request);
         $this->syncProfileOrganizationFromVPeople($request, $profile, $vpeopleService);
@@ -39,6 +45,7 @@ class CvProfileController extends Controller
         ]);
 
         [$locationOptions, $locationMasterError] = $this->locationOptions($request, $profile, $locationService);
+        [$organizationOptions, $organizationMasterError] = $this->organizationOptions($request, $profile, $organizationService);
 
         return view('cv.edit', [
             'profile' => $profile,
@@ -46,6 +53,8 @@ class CvProfileController extends Controller
             'vpeopleNik' => $this->vpeopleNik($request),
             'locationOptions' => $locationOptions,
             'locationMasterError' => $locationMasterError,
+            'organizationOptions' => $organizationOptions,
+            'organizationMasterError' => $organizationMasterError,
         ]);
     }
 
@@ -145,8 +154,9 @@ class CvProfileController extends Controller
             }
 
             $profile->forceFill([
-                'department' => $employee['department'],
-                'division' => $employee['division'],
+                'department' => $profile->department ?: $employee['department'],
+                'division' => $profile->division ?: $employee['division'],
+                'position' => $profile->position ?: $employee['position'],
             ])->save();
 
             $request->user()->forceFill([
@@ -179,7 +189,9 @@ class CvProfileController extends Controller
                     'address' => $request->input('address'),
                     'phone' => $request->input('phone'),
                     'email' => $request->input('email'),
-                    'position' => $request->input('position'),
+                    'department' => $this->organizationValue($request, 'department'),
+                    'division' => $this->organizationValue($request, 'division'),
+                    'position' => $this->organizationValue($request, 'position'),
                     'profile_summary' => $request->input('profile_summary'),
                     'technical_skills' => $this->splitList($request->input('technical_skills')),
                     'non_technical_skills' => $this->splitList($request->input('non_technical_skills')),
@@ -265,6 +277,50 @@ class CvProfileController extends Controller
         ];
     }
 
+    private function organizationOptions(
+        Request $request,
+        CvProfile $profile,
+        VPeopleOrganizationService $organizationService
+    ): array {
+        $organizationMasterError = null;
+        $organizationOptions = $this->emptyOrganizationOptions();
+
+        try {
+            $department = $request->old('department', $profile->department);
+            $division = $request->old('division', $profile->division);
+
+            $departmentId = $organizationService->findDepartmentIdByName($department);
+            $divisionId = $organizationService->findDivisionIdByName($departmentId, $division);
+
+            $organizationOptions = [
+                'departments' => $organizationService->departments(),
+                'divisions' => $departmentId ? $organizationService->divisions($departmentId) : [],
+                'positions' => $organizationService->positions($departmentId, $divisionId),
+                'selected_department_id' => $departmentId,
+                'selected_division_id' => $divisionId,
+            ];
+        } catch (\Throwable $exception) {
+            Log::warning('V-People organization options failed to load.', [
+                'exception' => get_class($exception),
+            ]);
+
+            $organizationMasterError = 'Master organisasi V-People sedang tidak tersedia. Dropdown departemen, divisi, dan posisi belum bisa dimuat.';
+        }
+
+        return [$organizationOptions, $organizationMasterError];
+    }
+
+    private function emptyOrganizationOptions(): array
+    {
+        return [
+            'departments' => [],
+            'divisions' => [],
+            'positions' => [],
+            'selected_department_id' => null,
+            'selected_division_id' => null,
+        ];
+    }
+
     private function resolveLocationSelection(
         SaveCvProfileRequest $request,
         VPeopleLocationService $locationService
@@ -289,6 +345,18 @@ class CvProfileController extends Controller
         }
     }
 
+    private function organizationValue(SaveCvProfileRequest $request, string $field): ?string
+    {
+        $customValue = trim((string) $request->input($field . '_custom'));
+        $selectedValue = trim((string) $request->input($field));
+
+        if ($customValue !== '') {
+            return $customValue;
+        }
+
+        return $selectedValue === '' || $selectedValue === '__custom__' ? null : $selectedValue;
+    }
+
     private function syncExperiences(CvProfile $profile, array $items): void
     {
         $profile->experiences()->delete();
@@ -307,8 +375,8 @@ class CvProfileController extends Controller
                 'cv_profile_id' => $profile->id,
                 'position' => $item['position'] ?: null,
                 'company' => $item['company'] ?: 'PT VDNI',
-                'department' => $profile->department ?: null,
-                'division' => $profile->division ?: null,
+                'department' => $item['department'] ?: null,
+                'division' => $item['division'] ?: null,
                 'start_month' => $this->monthDate($item['start_month'] ?? null),
                 'end_month' => !empty($item['is_current']) ? null : $this->monthDate($item['end_month'] ?? null),
                 'is_current' => !empty($item['is_current']),

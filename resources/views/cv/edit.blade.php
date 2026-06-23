@@ -83,6 +83,21 @@ $selectedProvinceId = old('province_id', $profile->province_id);
 $selectedRegencyId = old('regency_id', $profile->regency_id);
 $selectedDistrictId = old('district_id', $profile->district_id);
 $selectedVillageId = old('village_id', $profile->village_id);
+$organizationOptions = $organizationOptions ?? ['departments' => [], 'divisions' => [], 'positions' => [], 'selected_department_id' => null, 'selected_division_id' => null];
+$selectedDepartment = old('department', $profile->department);
+$selectedDivision = old('division', $profile->division);
+$selectedPosition = old('position', $profile->position);
+$selectedDepartmentInOptions = collect($organizationOptions['departments'])->contains(function ($option) use ($selectedDepartment) {
+return strcasecmp($option['name'], (string) $selectedDepartment) === 0;
+});
+$selectedDivisionInOptions = collect($organizationOptions['divisions'])->contains(function ($option) use ($selectedDivision) {
+return strcasecmp($option['name'], (string) $selectedDivision) === 0;
+});
+$selectedPositionInOptions = collect($organizationOptions['positions'])->contains(function ($option) use ($selectedPosition) {
+return strcasecmp($option['name'], (string) $selectedPosition) === 0;
+});
+$selectedDivisionIsCustom = $selectedDivision && !$selectedDivisionInOptions;
+$selectedPositionIsCustom = $selectedPosition && !$selectedPositionInOptions;
 $selectedGender = old('gender', $profile->gender);
 
 if (!in_array($selectedGender, ['L', 'P'])) {
@@ -115,6 +130,13 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
 </div>
 @endif
 
+@if (!empty($organizationMasterError))
+<div class="alert alert-warning app-alert">
+    <strong>Master organisasi belum tersedia.</strong>
+    <div>{{ $organizationMasterError }}</div>
+</div>
+@endif
+
 <div class="row g-4 align-items-start">
     <div class="col-lg-8">
         <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" novalidate>
@@ -128,16 +150,21 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 <h2 class="h5 fw-bold mb-1" data-wizard-active-title>Data Pribadi</h2>
                                 <p class="text-muted mb-0">Isi bertahap agar data CV lebih mudah dicek sebelum disimpan.</p>
                             </div>
-                            <span class="badge badge-vpeople cv-wizard-counter">
-                                Step <span data-wizard-current>1</span> dari <span data-wizard-total>7</span>
-                            </span>
+                            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-md-end">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-guide-start data-bs-toggle="tooltip" data-bs-title="Lihat panduan singkat penggunaan form CV.">
+                                    <i class="bi bi-question-circle me-1"></i> Panduan
+                                </button>
+                                <span class="badge badge-vpeople cv-wizard-counter">
+                                    Step <span data-wizard-current>1</span> dari <span data-wizard-total>7</span>
+                                </span>
+                            </div>
                         </div>
 
                         <div class="cv-wizard-progress mb-3" aria-hidden="true">
                             <div data-wizard-progress></div>
                         </div>
 
-                        <div class="cv-wizard-steps" role="tablist" aria-label="Tahapan pengisian CV">
+                        <div class="cv-wizard-steps" role="tablist" aria-label="Tahapan pengisian CV" data-guide-target="wizard-steps">
                             <button type="button" class="cv-wizard-step is-active" data-wizard-step-target="personal">
                                 <span class="cv-wizard-step-number">1</span>
                                 <span class="cv-wizard-step-text">
@@ -145,11 +172,11 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                     <span class="cv-wizard-step-subtitle">Identitas & kontak</span>
                                 </span>
                             </button>
-                            <button type="button" class="cv-wizard-step" data-wizard-step-target="experience">
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="summary">
                                 <span class="cv-wizard-step-number">2</span>
                                 <span class="cv-wizard-step-text">
-                                    <span class="cv-wizard-step-title">Pengalaman</span>
-                                    <span class="cv-wizard-step-subtitle">Riwayat kerja</span>
+                                    <span class="cv-wizard-step-title">Ringkasan Profil</span>
+                                    <span class="cv-wizard-step-subtitle">Profil singkat</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="education">
@@ -159,32 +186,32 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                     <span class="cv-wizard-step-subtitle">Riwayat akademik</span>
                                 </span>
                             </button>
-                            <button type="button" class="cv-wizard-step" data-wizard-step-target="skills">
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="experience">
                                 <span class="cv-wizard-step-number">4</span>
+                                <span class="cv-wizard-step-text">
+                                    <span class="cv-wizard-step-title">Pengalaman</span>
+                                    <span class="cv-wizard-step-subtitle">Riwayat kerja</span>
+                                </span>
+                            </button>
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="skills">
+                                <span class="cv-wizard-step-number">5</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Keahlian</span>
                                     <span class="cv-wizard-step-subtitle">Teknis & non-teknis</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="certifications">
-                                <span class="cv-wizard-step-number">5</span>
+                                <span class="cv-wizard-step-number">6</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Sertifikasi</span>
                                     <span class="cv-wizard-step-subtitle">Pelatihan</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="extras">
-                                <span class="cv-wizard-step-number">6</span>
+                                <span class="cv-wizard-step-number">7</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Tambahan</span>
                                     <span class="cv-wizard-step-subtitle">Bahasa & proyek</span>
-                                </span>
-                            </button>
-                            <button type="button" class="cv-wizard-step" data-wizard-step-target="summary">
-                                <span class="cv-wizard-step-number">7</span>
-                                <span class="cv-wizard-step-text">
-                                    <span class="cv-wizard-step-title">Ringkasan</span>
-                                    <span class="cv-wizard-step-subtitle">Finalisasi profil</span>
                                 </span>
                             </button>
                         </div>
@@ -337,19 +364,98 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Departemen</label>
-                                <span class="badge badge-vpeople ms-1">V-People</span>
-                                <input type="text" class="form-control readonly-field" value="{{ $profile->department ?: '-' }}" readonly>
+                                <select id="departmentSelect" name="department" class="form-select @error('department') is-invalid @enderror" data-organization-child="#divisionSelect" data-organization-param="department_id" data-organization-url="{{ route('cv.organizations.divisions') }}" data-organization-placeholder="Pilih departemen">
+                                    <option value="">Pilih departemen</option>
+                                    @foreach ($organizationOptions['departments'] as $department)
+                                    <option value="{{ $department['name'] }}" data-option-id="{{ $department['id'] }}" {{ strcasecmp($department['name'], (string) $selectedDepartment) === 0 ? 'selected' : '' }}>
+                                        {{ $department['name'] }}
+                                    </option>
+                                    @endforeach
+                                    @if ($selectedDepartment && !$selectedDepartmentInOptions)
+                                    <option value="{{ $selectedDepartment }}" selected>{{ $selectedDepartment }}</option>
+                                    @endif
+                                </select>
+                                @error('department') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Divisi</label>
-                                <span class="badge badge-vpeople ms-1">V-People</span>
-                                <input type="text" class="form-control readonly-field" value="{{ $profile->division ?: '-' }}" readonly>
+                                <select id="divisionSelect" name="division_choice" class="form-select @error('division') is-invalid @enderror @error('division_custom') is-invalid @enderror" data-organization-child="#positionSelect" data-organization-url="{{ route('cv.organizations.positions') }}" data-organization-placeholder="Pilih divisi" data-organization-parent="#departmentSelect" data-organization-target="#divisionHidden" data-organization-custom="#divisionCustomInput" {{ $organizationOptions['selected_department_id'] || $selectedDivision ? '' : 'disabled' }}>
+                                    <option value="">Pilih divisi</option>
+                                    @foreach ($organizationOptions['divisions'] as $division)
+                                    <option value="{{ $division['name'] }}" data-option-id="{{ $division['id'] }}" {{ strcasecmp($division['name'], (string) $selectedDivision) === 0 ? 'selected' : '' }}>
+                                        {{ $division['name'] }}
+                                    </option>
+                                    @endforeach
+                                    <option value="__custom__" {{ $selectedDivisionIsCustom ? 'selected' : '' }}>Lainnya</option>
+                                </select>
+                                <input type="hidden" id="divisionHidden" name="division" value="{{ $selectedDivision }}">
+                                <input type="text" id="divisionCustomInput" name="division_custom" class="form-control mt-2 @error('division_custom') is-invalid @enderror" value="{{ $selectedDivisionIsCustom ? $selectedDivision : old('division_custom') }}" placeholder="Isi divisi jika tidak ada di pilihan" data-organization-custom-input {{ $selectedDivisionIsCustom ? '' : 'disabled hidden' }}>
+                                @error('division') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                @error('division_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Jabatan/Posisi</label>
-                                <input type="text" name="position" class="form-control @error('position') is-invalid @enderror" value="{{ old('position', $profile->position) }}" placeholder="Contoh: Mechanical Technician">
-                                @error('position') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <select id="positionSelect" name="position_choice" class="form-select @error('position') is-invalid @enderror @error('position_custom') is-invalid @enderror" data-organization-parent="#departmentSelect" data-organization-target="#positionHidden" data-organization-custom="#positionCustomInput" data-organization-placeholder="Pilih posisi" {{ $organizationOptions['selected_department_id'] || $selectedPosition ? '' : 'disabled' }}>
+                                            <option value="">Pilih posisi</option>
+                                            @foreach ($organizationOptions['positions'] as $positionOption)
+                                            <option value="{{ $positionOption['name'] }}" {{ strcasecmp($positionOption['name'], (string) $selectedPosition) === 0 ? 'selected' : '' }}>
+                                                {{ $positionOption['name'] }}
+                                            </option>
+                                            @endforeach
+                                            <option value="__custom__" {{ $selectedPositionIsCustom ? 'selected' : '' }}>Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="hidden" id="positionHidden" name="position" value="{{ $selectedPosition }}">
+                                        <input type="text" id="positionCustomInput" name="position_custom" class="form-control @error('position_custom') is-invalid @enderror" value="{{ $selectedPositionIsCustom ? $selectedPosition : old('position_custom') }}" placeholder="Isi posisi jika tidak ada di pilihan" data-organization-custom-input {{ $selectedPositionIsCustom ? '' : 'disabled hidden' }}>
+                                    </div>
+                                </div>
+                                @error('position') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                @error('position_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="summary" data-wizard-title="Ringkasan Profil">
+                    <div class="app-card-header">
+                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
+                            <div>
+                                <h2 class="app-card-title h5">Ringkasan Profil</h2>
+                                <p class="app-card-subtitle">Maksimal 300 karakter. Generate setelah data utama diisi agar hasilnya lebih relevan.</p>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan..." data-bs-toggle="tooltip" data-bs-title="Buat ringkasan profil otomatis dari data yang sudah Anda isi.">
+                                <i class="bi bi-stars me-1"></i> Generate
+                            </button>
+                        </div>
+                    </div>
+                    <div class="app-card-body">
+                        <textarea name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Tulis ringkas, spesifik, dan profesional.</small>
+                            <small class="text-muted"><span id="summaryCounter">0</span>/300</small>
+                        </div>
+                        @error('profile_summary') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+
+                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="education" data-wizard-title="Pendidikan">
+                    <div class="app-card-header">
+                        <h2 class="app-card-title h5">Pendidikan</h2>
+                        <p class="app-card-subtitle">Data pendidikan dari V-People dapat disesuaikan jika belum lengkap.</p>
+                    </div>
+                    <div class="app-card-body">
+                        <div data-repeat-list="educations">
+                            @foreach ($educations as $index => $item)
+                            @include('cv.partials.education-row', ['index' => $index, 'item' => $item, 'educationLevels' => $educationLevels, 'yearOptions' => $yearOptions])
+                            @endforeach
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="educations" data-bs-toggle="tooltip" data-bs-title="Tambah baris pendidikan jika Anda ingin mencatat lebih dari satu riwayat pendidikan.">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -366,26 +472,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                             @endforeach
                         </div>
                         <div class="mt-3 text-end">
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences">
-                                <i class="bi bi-plus-lg me-1"></i> Tambah
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="education" data-wizard-title="Pendidikan">
-                    <div class="app-card-header">
-                        <h2 class="app-card-title h5">Pendidikan</h2>
-                        <p class="app-card-subtitle">Data pendidikan dari V-People dapat disesuaikan jika belum lengkap.</p>
-                    </div>
-                    <div class="app-card-body">
-                        <div data-repeat-list="educations">
-                            @foreach ($educations as $index => $item)
-                            @include('cv.partials.education-row', ['index' => $index, 'item' => $item, 'educationLevels' => $educationLevels, 'yearOptions' => $yearOptions])
-                            @endforeach
-                        </div>
-                        <div class="mt-3 text-end">
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="educations">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences" data-guide-target="add-experience" data-bs-toggle="tooltip" data-bs-title="Jika memiliki pengalaman kerja lebih dari satu, gunakan tombol ini untuk menambah baris pengalaman.">
                                 <i class="bi bi-plus-lg me-1"></i> Tambah
                             </button>
                         </div>
@@ -423,7 +510,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                             @endforeach
                         </div>
                         <div class="mt-3 text-end">
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="certifications">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="certifications" data-bs-toggle="tooltip" data-bs-title="Tambah sertifikasi atau pelatihan lain jika jumlahnya lebih dari satu.">
                                 <i class="bi bi-plus-lg me-1"></i> Tambah
                             </button>
                         </div>
@@ -444,7 +531,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 @endforeach
                             </div>
                             <div class="mt-3 text-end">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="languages">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="languages" data-bs-toggle="tooltip" data-bs-title="Tambah bahasa lain yang Anda kuasai.">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah
                                 </button>
                             </div>
@@ -460,7 +547,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 @endforeach
                             </div>
                             <div class="mt-3 text-end">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="projects">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="projects" data-bs-toggle="tooltip" data-bs-title="Tambah proyek lain yang relevan dengan CV.">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah
                                 </button>
                             </div>
@@ -476,7 +563,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 @endforeach
                             </div>
                             <div class="mt-3 text-end">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="organizations">
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="organizations" data-bs-toggle="tooltip" data-bs-title="Tambah pengalaman organisasi lain jika ada.">
                                     <i class="bi bi-plus-lg me-1"></i> Tambah
                                 </button>
                             </div>
@@ -484,44 +571,23 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                     </div>
                 </div>
 
-                <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="summary" data-wizard-title="Ringkasan Profil">
-                    <div class="app-card-header">
-                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
-                            <div>
-                                <h2 class="app-card-title h5">Ringkasan Profil</h2>
-                                <p class="app-card-subtitle">Maksimal 300 karakter. Generate setelah data utama diisi agar hasilnya lebih relevan.</p>
-                            </div>
-                            <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan...">
-                                <i class="bi bi-stars me-1"></i> Generate
-                            </button>
-                        </div>
-                    </div>
-                    <div class="app-card-body">
-                        <textarea name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
-                        <div class="d-flex justify-content-between mt-2">
-                            <small class="text-muted">Tulis ringkas, spesifik, dan profesional.</small>
-                            <small class="text-muted"><span id="summaryCounter">0</span>/300</small>
-                        </div>
-                        @error('profile_summary') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-                    </div>
-                </div>
             </div>
 
             <div class="app-savebar">
                 <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> Kembali
                 </a>
-                <div class="cv-wizard-action-group">
-                    <button type="button" class="btn btn-outline-secondary" data-wizard-prev>
+                <div class="cv-wizard-action-group" data-guide-target="save-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-wizard-prev data-bs-toggle="tooltip" data-bs-title="Kembali ke step sebelumnya.">
                         <i class="bi bi-chevron-left me-1"></i> Sebelumnya
                     </button>
-                    <button type="button" class="btn btn-primary" data-wizard-next>
+                    <button type="button" class="btn btn-primary" data-wizard-next data-bs-toggle="tooltip" data-bs-title="Lanjut ke step berikutnya setelah step saat ini lengkap.">
                         Berikutnya <i class="bi bi-chevron-right ms-1"></i>
                     </button>
-                    <button type="submit" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview...">
+                    <button type="submit" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
                         <i class="bi bi-eye me-1"></i> Simpan & Preview
                     </button>
-                    <button type="submit" class="btn btn-primary" data-loading-text="Menyimpan draft...">
+                    <button type="submit" class="btn btn-primary" data-loading-text="Menyimpan draft..." data-bs-toggle="tooltip" data-bs-title="Simpan perubahan sebagai draft tanpa harus menyelesaikan semua data.">
                         <i class="bi bi-save me-1"></i> Simpan Draft
                     </button>
                 </div>
@@ -556,10 +622,10 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                 </div>
 
                 <div class="d-grid gap-2 mt-3">
-                    <button type="submit" form="cvForm" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview...">
+                    <button type="submit" form="cvForm" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
                         <i class="bi bi-eye me-1"></i> Simpan & Preview
                     </button>
-                    <a href="{{ route('cv.pdf.download') }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('cv.pdf.download') }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Unduh PDF setelah data wajib CV lengkap.">
                         <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
                     </a>
                 </div>

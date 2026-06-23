@@ -7,6 +7,51 @@
     var pendingPhotoApplied = false;
     var previewPhotoObjectUrl = null;
     var activeWizardIndex = 0;
+    var GUIDE_STORAGE_KEY = 'vitae.cv-form-guide.seen.v1';
+    var CV_GUIDE_STEPS = [
+        {
+            title: 'Isi CV Bertahap',
+            selector: '[data-guide-target="wizard-steps"]',
+            html: 'Gunakan step di bagian atas untuk mengisi CV sesuai urutan. Step berikutnya baru bisa dibuka setelah step sebelumnya lengkap.',
+        },
+        {
+            title: 'Tombol Berikutnya dan Sebelumnya',
+            selector: '[data-guide-target="save-actions"]',
+            html: 'Gunakan Berikutnya untuk lanjut dan Sebelumnya untuk kembali. Jika ada data wajib yang kosong, sistem akan menahan Anda di step yang perlu dilengkapi.',
+        },
+        {
+            title: 'Tambah Pengalaman',
+            selector: '[data-guide-target="add-experience"]',
+            html: 'Jika memiliki pengalaman kerja lebih dari satu, buka step Pengalaman lalu klik tombol Tambah untuk membuat baris pengalaman baru.',
+        },
+        {
+            title: 'Simpan Draft dan Preview',
+            selector: '[data-guide-target="save-actions"]',
+            html: 'Simpan Draft menyimpan data sementara. Simpan & Preview menyimpan data lalu membuka tampilan CV untuk dicek sebelum download PDF.',
+        },
+    ];
+    var WIZARD_VALIDATION_RULES = {
+        personal: {
+            fields: [
+                { selector: '[name="birth_place"]', label: 'Tempat lahir' },
+                { selector: '[name="gender"]', label: 'Jenis kelamin' },
+                { selector: '[name="marital_status"]', label: 'Status pernikahan' },
+                { selector: '[name="address"]', label: 'Alamat lengkap' },
+                { selector: '[name="phone"]', label: 'No. HP' },
+                { selector: '[name="email"]', label: 'Email' },
+            ],
+        },
+        summary: {
+            fields: [
+                { selector: '[name="profile_summary"]', label: 'Ringkasan profil' },
+            ],
+        },
+        skills: {
+            fields: [
+                { selector: '[name="technical_skills"]', label: 'Keahlian teknis' },
+            ],
+        },
+    };
 
     function highestRepeatIndex() {
         var highest = -1;
@@ -165,6 +210,185 @@
             });
     }
 
+    function organizationPlaceholder(select) {
+        return select.dataset.organizationPlaceholder || 'Pilih data';
+    }
+
+    function organizationCustomOption(select) {
+        return select.dataset.organizationCustom ? new Option('Lainnya', '__custom__') : null;
+    }
+
+    function selectedOrganizationOptionId(select) {
+        var option = select && select.selectedOptions && select.selectedOptions.length ? select.selectedOptions[0] : null;
+
+        return option && option.dataset.optionId ? option.dataset.optionId : '';
+    }
+
+    function setOrganizationPlaceholder(select, text) {
+        select.innerHTML = '';
+        select.appendChild(new Option(text || organizationPlaceholder(select), ''));
+    }
+
+    function appendOrganizationCustomOption(select) {
+        var option = organizationCustomOption(select);
+
+        if (option) {
+            select.appendChild(option);
+        }
+    }
+
+    function clearOrganizationSelect(select) {
+        setOrganizationPlaceholder(select, organizationPlaceholder(select));
+        appendOrganizationCustomOption(select);
+        select.disabled = true;
+        syncOrganizationChoice(select);
+    }
+
+    function clearOrganizationChildren(select) {
+        var childSelector = select.dataset.organizationChild;
+        var child = childSelector ? document.querySelector(childSelector) : null;
+
+        if (!child) {
+            return;
+        }
+
+        clearOrganizationSelect(child);
+        clearOrganizationChildren(child);
+    }
+
+    function setOrganizationOptions(select, items, allowCustom) {
+        setOrganizationPlaceholder(select, organizationPlaceholder(select));
+
+        items.forEach(function (item) {
+            var option = new Option(item.name, item.name);
+
+            option.dataset.optionId = item.id;
+            select.appendChild(option);
+        });
+
+        if (allowCustom) {
+            appendOrganizationCustomOption(select);
+        }
+
+        select.disabled = items.length === 0 && !allowCustom;
+        syncOrganizationChoice(select);
+    }
+
+    function organizationUrl(url, params) {
+        var query = Object.keys(params)
+            .filter(function (key) {
+                return params[key] !== null && params[key] !== undefined && params[key] !== '';
+            })
+            .map(function (key) {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+            })
+            .join('&');
+
+        if (!query) {
+            return url;
+        }
+
+        return url + (url.indexOf('?') === -1 ? '?' : '&') + query;
+    }
+
+    function organizationRequestParams(parentSelect, child) {
+        var departmentSelect = document.querySelector('#departmentSelect');
+        var divisionSelect = document.querySelector('#divisionSelect');
+        var params = {};
+
+        if (child && child.id === 'divisionSelect') {
+            params.department_id = selectedOrganizationOptionId(parentSelect);
+            return params;
+        }
+
+        params.department_id = selectedOrganizationOptionId(departmentSelect);
+
+        if (divisionSelect && divisionSelect.value !== '__custom__') {
+            params.division_id = selectedOrganizationOptionId(divisionSelect);
+        }
+
+        return params;
+    }
+
+    function loadOrganizationChild(parentSelect) {
+        var childSelector = parentSelect.dataset.organizationChild;
+        var child = childSelector ? document.querySelector(childSelector) : null;
+        var params = child ? organizationRequestParams(parentSelect, child) : {};
+        var hasRequiredParent = Object.keys(params).some(function (key) {
+            return params[key];
+        });
+
+        if (!child) {
+            return;
+        }
+
+        clearOrganizationSelect(child);
+        clearOrganizationChildren(child);
+
+        if (!parentSelect.dataset.organizationUrl || !hasRequiredParent) {
+            return;
+        }
+
+        setOrganizationPlaceholder(child, 'Memuat data...');
+
+        fetch(organizationUrl(parentSelect.dataset.organizationUrl, params), {
+            headers: {
+                'Accept': 'application/json',
+            },
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Gagal memuat master organisasi.');
+                }
+
+                return response.json();
+            })
+            .then(function (payload) {
+                setOrganizationOptions(child, payload.data || [], !!child.dataset.organizationCustom);
+            })
+            .catch(function () {
+                setOrganizationOptions(child, [], !!child.dataset.organizationCustom);
+
+                if (child.options.length) {
+                    child.options[0].textContent = 'Gagal memuat data';
+                }
+            });
+    }
+
+    function syncOrganizationChoice(select) {
+        var hidden = select && select.dataset.organizationTarget ? document.querySelector(select.dataset.organizationTarget) : null;
+        var custom = select && select.dataset.organizationCustom ? document.querySelector(select.dataset.organizationCustom) : null;
+        var isCustom = select && select.value === '__custom__';
+
+        if (custom) {
+            custom.hidden = !isCustom;
+            custom.disabled = !isCustom;
+
+            if (!isCustom) {
+                custom.value = '';
+            }
+        }
+
+        if (hidden) {
+            hidden.value = isCustom && custom ? custom.value.trim() : (select.value || '');
+        }
+    }
+
+    function syncOrganizationCustomInput(input) {
+        var selector = '#' + input.id;
+        var select = document.querySelector('[data-organization-custom="' + selector + '"]');
+
+        if (select) {
+            syncOrganizationChoice(select);
+        }
+    }
+
+    function initOrganizationFields() {
+        document.querySelectorAll('[data-organization-target]').forEach(function (select) {
+            syncOrganizationChoice(select);
+        });
+    }
+
     function applyCurrentToggles(root) {
         (root || document).querySelectorAll('[data-current-checkbox]').forEach(function (checkbox) {
             var item = checkbox.closest('[data-repeat-item]');
@@ -190,6 +414,127 @@
                 counter.textContent = field.value.length;
             }
         });
+    }
+
+    function initGuideTooltips() {
+        if (!window.bootstrap || !window.bootstrap.Tooltip) {
+            return;
+        }
+
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+            if (!bootstrap.Tooltip.getInstance(element)) {
+                new bootstrap.Tooltip(element, {
+                    trigger: 'hover focus',
+                });
+            }
+        });
+    }
+
+    function storageGet(key) {
+        try {
+            return window.localStorage ? window.localStorage.getItem(key) : null;
+        } catch (exception) {
+            return null;
+        }
+    }
+
+    function storageSet(key, value) {
+        try {
+            if (window.localStorage) {
+                window.localStorage.setItem(key, value);
+            }
+        } catch (exception) {
+            return;
+        }
+    }
+
+    function clearGuideHighlight() {
+        document.querySelectorAll('.cv-guide-highlight').forEach(function (element) {
+            element.classList.remove('cv-guide-highlight');
+        });
+    }
+
+    function isGuideTargetVisible(element) {
+        return !!(element && element.getClientRects && element.getClientRects().length);
+    }
+
+    function highlightGuideTarget(selector) {
+        var target = selector ? document.querySelector(selector) : null;
+
+        clearGuideHighlight();
+
+        if (!isGuideTargetVisible(target)) {
+            return;
+        }
+
+        target.classList.add('cv-guide-highlight');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function finishGuide(markSeen) {
+        clearGuideHighlight();
+
+        if (markSeen) {
+            storageSet(GUIDE_STORAGE_KEY, '1');
+        }
+    }
+
+    function showGuideStep(index, markSeenOnClose) {
+        var step = CV_GUIDE_STEPS[index];
+        var isLastStep = index >= CV_GUIDE_STEPS.length - 1;
+
+        if (!step || !window.Swal || typeof window.Swal.fire !== 'function') {
+            finishGuide(markSeenOnClose);
+            return;
+        }
+
+        highlightGuideTarget(step.selector);
+
+        window.Swal.fire({
+            icon: 'info',
+            title: step.title,
+            html: '<div class="text-start">' + step.html + '</div>',
+            confirmButtonText: isLastStep ? 'Selesai' : 'Lanjut',
+            denyButtonText: 'Kembali',
+            cancelButtonText: 'Tutup',
+            showDenyButton: index > 0,
+            showCancelButton: true,
+            reverseButtons: true,
+            allowOutsideClick: false,
+        }).then(function (result) {
+            clearGuideHighlight();
+
+            if (result.isConfirmed) {
+                if (isLastStep) {
+                    finishGuide(markSeenOnClose);
+                    return;
+                }
+
+                showGuideStep(index + 1, markSeenOnClose);
+                return;
+            }
+
+            if (result.isDenied) {
+                showGuideStep(Math.max(0, index - 1), markSeenOnClose);
+                return;
+            }
+
+            finishGuide(markSeenOnClose);
+        });
+    }
+
+    function startCvGuide(markSeenOnClose) {
+        showGuideStep(0, markSeenOnClose);
+    }
+
+    function shouldAutoStartGuide() {
+        var form = document.getElementById('cvForm');
+
+        if (!form || storageGet(GUIDE_STORAGE_KEY) === '1') {
+            return false;
+        }
+
+        return !document.querySelector('.alert-danger.app-alert');
     }
 
     function isFocusableCvField(element) {
@@ -310,6 +655,390 @@
         }) || null;
     }
 
+    function fieldValue(field) {
+        if (!field) {
+            return '';
+        }
+
+        if (field.type === 'checkbox' || field.type === 'radio') {
+            return field.checked ? field.value : '';
+        }
+
+        return String(field.value || '').trim();
+    }
+
+    function fieldHasValue(field) {
+        if (!field) {
+            return false;
+        }
+
+        if (field.disabled) {
+            return true;
+        }
+
+        return fieldValue(field) !== '';
+    }
+
+    function fieldErrorContainer(field) {
+        if (!field) {
+            return null;
+        }
+
+        return field.closest('.form-check') || fieldFocusGroup(field) || field.parentElement;
+    }
+
+    function clearFieldWizardError(field) {
+        var container = fieldErrorContainer(field);
+
+        if (!field || !field.classList.contains('is-wizard-invalid')) {
+            return;
+        }
+
+        field.classList.remove('is-wizard-invalid');
+
+        if (field.dataset.wizardHadInvalid !== '1') {
+            field.classList.remove('is-invalid');
+        }
+
+        delete field.dataset.wizardHadInvalid;
+
+        if (container) {
+            container.querySelectorAll('.js-wizard-feedback').forEach(function (feedback) {
+                feedback.remove();
+            });
+        }
+    }
+
+    function clearPanelWizardErrors(panel) {
+        panel.querySelectorAll('.is-wizard-invalid').forEach(function (field) {
+            clearFieldWizardError(field);
+        });
+
+        panel.querySelectorAll('.js-wizard-feedback').forEach(function (feedback) {
+            feedback.remove();
+        });
+    }
+
+    function addWizardFieldError(errors, field, message, options) {
+        var container = fieldErrorContainer(field);
+        var feedback = null;
+
+        errors.push({
+            field: field,
+            message: message,
+        });
+
+        if (!field || (options && options.silent)) {
+            return;
+        }
+
+        if (!field.classList.contains('is-wizard-invalid')) {
+            field.dataset.wizardHadInvalid = field.classList.contains('is-invalid') ? '1' : '0';
+        }
+
+        field.classList.add('is-invalid', 'is-wizard-invalid');
+
+        if (!container) {
+            return;
+        }
+
+        feedback = container.querySelector('.js-wizard-feedback');
+
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback d-block js-wizard-feedback';
+            container.appendChild(feedback);
+        }
+
+        feedback.textContent = message;
+    }
+
+    function requiredMessage(label) {
+        return label + ' wajib diisi sebelum lanjut ke step berikutnya.';
+    }
+
+    function validateRequiredField(container, selector, label, options, errors) {
+        var field = container ? container.querySelector(selector) : null;
+
+        if (!field || fieldHasValue(field)) {
+            return true;
+        }
+
+        addWizardFieldError(errors, field, requiredMessage(label), options);
+
+        return false;
+    }
+
+    function repeatRows(panel, type) {
+        var list = panel ? panel.querySelector('[data-repeat-list="' + type + '"]') : null;
+
+        return list ? Array.prototype.slice.call(list.querySelectorAll('[data-repeat-item]')) : [];
+    }
+
+    function repeatField(row, name) {
+        return row ? row.querySelector('[name$="[' + name + ']"]') : null;
+    }
+
+    function repeatRowHasValue(row, names) {
+        return names.some(function (name) {
+            return fieldHasValue(repeatField(row, name));
+        });
+    }
+
+    function validateSimpleWizardPanel(panel, options, errors) {
+        var rule = WIZARD_VALIDATION_RULES[panel.dataset.wizardPanel];
+
+        if (!rule || !rule.fields) {
+            return;
+        }
+
+        rule.fields.forEach(function (fieldRule) {
+            validateRequiredField(panel, fieldRule.selector, fieldRule.label, options, errors);
+        });
+    }
+
+    function validateEducationWizardPanel(panel, options, errors) {
+        var rows = repeatRows(panel, 'educations');
+        var hasStartedRow = false;
+        var completeRows = 0;
+
+        rows.forEach(function (row) {
+            var started = repeatRowHasValue(row, ['level', 'institution', 'major', 'graduation_year']);
+            var before = errors.length;
+            var level = fieldValue(repeatField(row, 'level'));
+
+            if (!started) {
+                return;
+            }
+
+            hasStartedRow = true;
+
+            validateRequiredField(row, '[name$="[level]"]', 'Jenjang pendidikan', options, errors);
+            validateRequiredField(row, '[name$="[institution]"]', 'Nama institusi', options, errors);
+            validateRequiredField(row, '[name$="[graduation_year]"]', 'Tahun lulus', options, errors);
+
+            if (level && ['SD', 'SMP'].indexOf(level) === -1) {
+                validateRequiredField(row, '[name$="[major]"]', 'Jurusan', options, errors);
+            }
+
+            if (errors.length === before) {
+                completeRows += 1;
+            }
+        });
+
+        if (!completeRows && !hasStartedRow && rows.length) {
+            addWizardFieldError(
+                errors,
+                repeatField(rows[0], 'level'),
+                'Isi minimal satu pendidikan lengkap sebelum lanjut ke step berikutnya.',
+                options
+            );
+        }
+    }
+
+    function validateExperienceWizardPanel(panel, options, errors) {
+        var rows = repeatRows(panel, 'experiences');
+        var hasStartedRow = false;
+        var completeRows = 0;
+
+        rows.forEach(function (row) {
+            var currentField = repeatField(row, 'is_current');
+            var started = repeatRowHasValue(row, ['position', 'company', 'department', 'division', 'start_month', 'end_month', 'responsibilities'])
+                || (currentField && currentField.checked);
+            var before = errors.length;
+
+            if (!started) {
+                return;
+            }
+
+            hasStartedRow = true;
+
+            validateRequiredField(row, '[name$="[position]"]', 'Nama posisi/jabatan', options, errors);
+            validateRequiredField(row, '[name$="[company]"]', 'Nama perusahaan', options, errors);
+            validateRequiredField(row, '[name$="[start_month]"]', 'Bulan mulai', options, errors);
+            validateRequiredField(row, '[name$="[responsibilities]"]', 'Job description', options, errors);
+
+            if (!currentField || !currentField.checked) {
+                validateRequiredField(row, '[name$="[end_month]"]', 'Bulan selesai', options, errors);
+            }
+
+            if (errors.length === before) {
+                completeRows += 1;
+            }
+        });
+
+        if (!completeRows && !hasStartedRow && rows.length) {
+            addWizardFieldError(
+                errors,
+                repeatField(rows[0], 'position'),
+                'Isi minimal satu pengalaman kerja lengkap sebelum lanjut ke step berikutnya.',
+                options
+            );
+        }
+    }
+
+    function validateCertificationsWizardPanel(panel, options, errors) {
+        repeatRows(panel, 'certifications').forEach(function (row) {
+            var hasLifetime = repeatField(row, 'is_lifetime') && repeatField(row, 'is_lifetime').checked;
+            var started = repeatRowHasValue(row, ['name', 'issuer', 'year', 'valid_until_year']) || hasLifetime;
+
+            if (!started) {
+                return;
+            }
+
+            validateRequiredField(row, '[name$="[name]"]', 'Nama sertifikasi/pelatihan', options, errors);
+            validateRequiredField(row, '[name$="[issuer]"]', 'Penerbit/penyelenggara', options, errors);
+            validateRequiredField(row, '[name$="[year]"]', 'Tahun sertifikasi/pelatihan', options, errors);
+        });
+    }
+
+    function validateWizardPanel(panel, options) {
+        var errors = [];
+        var panelKey = panel ? panel.dataset.wizardPanel : null;
+
+        if (!panel) {
+            return {
+                valid: true,
+                errors: errors,
+                panel: panel,
+            };
+        }
+
+        if (!options || !options.silent) {
+            clearPanelWizardErrors(panel);
+        }
+
+        validateSimpleWizardPanel(panel, options || {}, errors);
+
+        if (panelKey === 'education') {
+            validateEducationWizardPanel(panel, options || {}, errors);
+        }
+
+        if (panelKey === 'experience') {
+            validateExperienceWizardPanel(panel, options || {}, errors);
+        }
+
+        if (panelKey === 'certifications') {
+            validateCertificationsWizardPanel(panel, options || {}, errors);
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors: errors,
+            panel: panel,
+        };
+    }
+
+    function highestReachableWizardIndex(elements) {
+        var reachableIndex = elements.panels.length - 1;
+
+        elements.panels.some(function (panel, index) {
+            if (index === elements.panels.length - 1) {
+                return true;
+            }
+
+            if (!validateWizardPanel(panel, { silent: true }).valid) {
+                reachableIndex = index;
+                return true;
+            }
+
+            return false;
+        });
+
+        return reachableIndex;
+    }
+
+    function updateWizardAccessState(elements) {
+        var maxReachableIndex = highestReachableWizardIndex(elements);
+
+        elements.steps.forEach(function (step) {
+            var targetIndex = wizardPanelIndexByKey(elements.panels, step.dataset.wizardStepTarget);
+            var isLocked = targetIndex > maxReachableIndex;
+
+            step.classList.toggle('is-locked', isLocked);
+            step.setAttribute('aria-disabled', isLocked ? 'true' : 'false');
+            step.title = isLocked ? 'Lengkapi step sebelumnya terlebih dahulu.' : '';
+        });
+    }
+
+    function focusWizardValidationError(result) {
+        var firstError = result.errors.find(function (error) {
+            return error.field && typeof error.field.focus === 'function';
+        });
+
+        if (firstError && firstError.field) {
+            firstError.field.focus({ preventScroll: true });
+        }
+    }
+
+    function notifyWizardValidation(panel) {
+        var title = panel && panel.dataset.wizardTitle ? panel.dataset.wizardTitle : 'step ini';
+
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Step belum lengkap',
+                text: 'Lengkapi ' + title + ' sebelum lanjut ke step berikutnya.',
+                confirmButtonText: 'Mengerti',
+            });
+        }
+    }
+
+    function validateWizardPath(elements, targetIndex) {
+        var result = null;
+        var invalidIndex = -1;
+
+        elements.panels.some(function (panel, index) {
+            if (index >= targetIndex) {
+                return true;
+            }
+
+            result = validateWizardPanel(panel);
+
+            if (!result.valid) {
+                invalidIndex = index;
+                return true;
+            }
+
+            return false;
+        });
+
+        if (invalidIndex === -1) {
+            return true;
+        }
+
+        setWizardStep(invalidIndex, { scroll: true });
+        focusWizardValidationError(result);
+        notifyWizardValidation(result.panel);
+
+        return false;
+    }
+
+    function goToWizardStep(index, options) {
+        var elements = wizardElements();
+
+        if (!elements || !elements.panels.length) {
+            return;
+        }
+
+        if (index > activeWizardIndex && !validateWizardPath(elements, index)) {
+            return;
+        }
+
+        setWizardStep(index, options);
+    }
+
+    function refreshWizardAccessState() {
+        var elements = wizardElements();
+
+        if (!elements) {
+            return;
+        }
+
+        updateWizardAccessState(elements);
+        markWizardErrors(elements);
+    }
+
     function markWizardErrors(elements) {
         elements.panels.forEach(function (panel) {
             var step = wizardStepForPanel(elements, panel);
@@ -366,9 +1095,12 @@
         elements.steps.forEach(function (step) {
             var targetIndex = wizardPanelIndexByKey(elements.panels, step.dataset.wizardStepTarget);
             var isActive = step.dataset.wizardStepTarget === activeKey;
+            var targetPanel = targetIndex > -1 ? elements.panels[targetIndex] : null;
+            var isComplete = targetPanel && targetIndex < boundedIndex
+                && validateWizardPanel(targetPanel, { silent: true }).valid;
 
             step.classList.toggle('is-active', isActive);
-            step.classList.toggle('is-complete', targetIndex > -1 && targetIndex < boundedIndex);
+            step.classList.toggle('is-complete', !!isComplete);
             step.setAttribute('aria-selected', isActive ? 'true' : 'false');
             step.setAttribute('tabindex', isActive ? '0' : '-1');
         });
@@ -398,6 +1130,7 @@
         }
 
         markWizardErrors(elements);
+        updateWizardAccessState(elements);
 
         if (options && options.scroll) {
             elements.root.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -425,10 +1158,11 @@
         });
 
         var errorIndex = firstWizardErrorIndex(elements);
-
         var initialIndex = initialWizardIndex(elements);
+        var requestedIndex = errorIndex > -1 ? errorIndex : Math.max(initialIndex, 0);
+        var reachableIndex = highestReachableWizardIndex(elements);
 
-        setWizardStep(errorIndex > -1 ? errorIndex : Math.max(initialIndex, 0), {
+        setWizardStep(Math.min(requestedIndex, reachableIndex), {
             scroll: errorIndex > -1,
         });
     }
@@ -662,11 +1396,27 @@
     }
 
     document.addEventListener('click', function (event) {
+        var guideButton = event.target.closest('[data-guide-start]');
         var wizardStepButton = event.target.closest('[data-wizard-step-target]');
         var wizardPrevButton = event.target.closest('[data-wizard-prev]');
         var wizardNextButton = event.target.closest('[data-wizard-next]');
         var addButton = event.target.closest('[data-repeat-add]');
         var removeButton = event.target.closest('[data-repeat-remove]');
+
+        if (guideButton) {
+            var tooltip = window.bootstrap && window.bootstrap.Tooltip
+                ? bootstrap.Tooltip.getInstance(guideButton)
+                : null;
+
+            event.preventDefault();
+
+            if (tooltip) {
+                tooltip.hide();
+            }
+
+            startCvGuide(false);
+            return;
+        }
 
         if (wizardStepButton) {
             var stepElements = wizardElements();
@@ -675,7 +1425,7 @@
             event.preventDefault();
 
             if (targetIndex > -1) {
-                setWizardStep(targetIndex, { scroll: true });
+                goToWizardStep(targetIndex, { scroll: true });
             }
 
             return;
@@ -683,22 +1433,24 @@
 
         if (wizardPrevButton) {
             event.preventDefault();
-            setWizardStep(activeWizardIndex - 1, { scroll: true });
+            goToWizardStep(activeWizardIndex - 1, { scroll: true });
             return;
         }
 
         if (wizardNextButton) {
             event.preventDefault();
-            setWizardStep(activeWizardIndex + 1, { scroll: true });
+            goToWizardStep(activeWizardIndex + 1, { scroll: true });
             return;
         }
 
         if (addButton) {
             addRepeatItem(addButton.dataset.repeatAdd);
+            refreshWizardAccessState();
         }
 
         if (removeButton) {
             removeRepeatItem(removeButton);
+            refreshWizardAccessState();
         }
 
         if (event.target.closest('[data-photo-crop-apply]')) {
@@ -713,12 +1465,28 @@
     });
 
     document.addEventListener('change', function (event) {
+        if (event.target.matches('#cvForm input, #cvForm textarea, #cvForm select')) {
+            clearFieldWizardError(event.target);
+        }
+
         if (event.target.matches('[data-current-checkbox]')) {
             applyCurrentToggles(event.target.closest('[data-repeat-item]'));
+
+            if (event.target.closest('[data-repeat-item]')) {
+                clearFieldWizardError(event.target.closest('[data-repeat-item]').querySelector('[data-current-target]'));
+            }
         }
 
         if (event.target.matches('[data-location-child]')) {
             loadLocationChild(event.target);
+        }
+
+        if (event.target.matches('[data-organization-target]')) {
+            syncOrganizationChoice(event.target);
+        }
+
+        if (event.target.matches('[data-organization-child]')) {
+            loadOrganizationChild(event.target);
         }
 
         if (event.target.matches('[data-photo-remove]')) {
@@ -728,9 +1496,20 @@
         if (event.target.matches('[data-photo-input]')) {
             openPhotoCrop(event.target);
         }
+
+        refreshWizardAccessState();
     });
 
     document.addEventListener('input', function (event) {
+        if (event.target.matches('#cvForm input, #cvForm textarea, #cvForm select')) {
+            clearFieldWizardError(event.target);
+            refreshWizardAccessState();
+        }
+
+        if (event.target.matches('[data-organization-custom-input]')) {
+            syncOrganizationCustomInput(event.target);
+        }
+
         if (event.target.matches('.js-countable')) {
             updateCounters();
         }
@@ -755,8 +1534,16 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         applyCurrentToggles(document);
+        initOrganizationFields();
+        initGuideTooltips();
         updateCounters();
         initWizard();
+
+        if (shouldAutoStartGuide()) {
+            window.setTimeout(function () {
+                startCvGuide(true);
+            }, 500);
+        }
 
         var elements = photoElements();
 

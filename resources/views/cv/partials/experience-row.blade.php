@@ -1,4 +1,9 @@
 <div class="repeat-item" data-repeat-item>
+    @php
+        $departmentValue = $item['department'] ?? ($profile->department ?? '');
+        $divisionValue = $item['division'] ?? ($profile->division ?? '');
+    @endphp
+
     <div class="repeat-item-header">
         <strong>Pengalaman Kerja</strong>
         <button type="button" class="btn btn-outline-danger btn-sm" data-repeat-remove>
@@ -17,13 +22,11 @@
         </div>
         <div class="col-md-6">
             <label class="form-label">Departemen</label>
-            <span class="badge badge-vpeople ms-1">V-People</span>
-            <input type="text" name="experiences[{{ $index }}][department]" class="form-control readonly-field" value="{{ $profile->department ?: '-' }}" readonly>
+            <input type="text" name="experiences[{{ $index }}][department]" class="form-control" value="{{ $departmentValue }}" placeholder="Contoh: Maintenance">
         </div>
         <div class="col-md-6">
             <label class="form-label">Divisi</label>
-            <span class="badge badge-vpeople ms-1">V-People</span>
-            <input type="text" name="experiences[{{ $index }}][division]" class="form-control readonly-field" value="{{ $profile->division ?: '-' }}" readonly>
+            <input type="text" name="experiences[{{ $index }}][division]" class="form-control" value="{{ $divisionValue }}" placeholder="Contoh: Mechanical">
         </div>
         <div class="col-md-6">
             <label class="form-label">Mulai</label>
