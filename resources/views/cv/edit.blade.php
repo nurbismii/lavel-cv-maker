@@ -646,7 +646,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
             <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="education" data-wizard-title="Pendidikan">
                 <div class="app-card-header">
                     <h2 class="app-card-title h5">Pendidikan</h2>
-                    <p class="app-card-subtitle">Data pendidikan Anda, gunakan tombol "Tambah Pendidikan" untuk menambahkan informasi pendidikan baru.</p>
+                    <p class="app-card-subtitle">Cukup masukkan informasi pendidikan terakhir Anda. Maksimal 2 riwayat pendidikan.</p>
                 </div>
                 <div class="app-card-body">
                     <div data-repeat-list="educations">
@@ -673,7 +673,8 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                         @include('cv.partials.experience-row', ['index' => $index, 'item' => $item, 'profile' => $profile])
                         @endforeach
                     </div>
-                    <div class="mt-3 text-end">
+                    <div class="mt-3 d-flex flex-column flex-md-row align-items-md-center justify-content-md-end gap-2 text-md-end">
+                        <small class="text-muted text-start">Jika memiliki pengalaman kerja lebih dari satu, gunakan tombol ini untuk menambah baris pengalaman.</small>
                         <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences" data-guide-target="add-experience" data-bs-toggle="tooltip" data-bs-title="Jika memiliki pengalaman kerja lebih dari satu, gunakan tombol ini untuk menambah baris pengalaman.">
                             <i class="bi bi-plus-lg me-1"></i> Tambah Pengalaman
                         </button>
