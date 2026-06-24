@@ -130,6 +130,7 @@
         item = wrapper.firstElementChild;
         list.appendChild(item);
         applyCurrentToggles(list);
+        syncCopyCurrentJobToggleAvailability();
     }
 
     function clearInputs(container) {
@@ -158,10 +159,13 @@
 
         if (list.querySelectorAll('[data-repeat-item]').length <= 1) {
             clearInputs(item);
+            applyCurrentToggles(item);
+            syncCopyCurrentJobToggleAvailability();
             return;
         }
 
         item.remove();
+        syncCopyCurrentJobToggleAvailability();
     }
 
     function locationPlaceholder(select) {
@@ -479,6 +483,112 @@
                 endMonth.value = '';
             }
         });
+    }
+
+    function currentJobExperience() {
+        var form = document.getElementById('cvForm');
+
+        if (!form) {
+            return {};
+        }
+
+        return {
+            position: form.dataset.currentJobPosition || '',
+            company: form.dataset.currentJobCompany || '',
+            department: form.dataset.currentJobDepartment || '',
+            division: form.dataset.currentJobDivision || '',
+            start_month: form.dataset.currentJobStartMonth || '',
+        };
+    }
+
+    function currentJobHasValue(data) {
+        return ['position', 'company', 'department', 'division', 'start_month'].some(function (key) {
+            return data[key] && String(data[key]).trim() !== '';
+        });
+    }
+
+    function setRepeatFieldValue(row, name, value) {
+        var field = repeatField(row, name);
+
+        if (!field) {
+            return;
+        }
+
+        field.value = value || '';
+        clearFieldWizardError(field);
+    }
+
+    function fillCurrentJobExperience(row) {
+        var data = currentJobExperience();
+        var currentCheckbox = repeatField(row, 'is_current');
+        var endMonth = repeatField(row, 'end_month');
+
+        setRepeatFieldValue(row, 'position', data.position);
+        setRepeatFieldValue(row, 'company', data.company);
+        setRepeatFieldValue(row, 'department', data.department);
+        setRepeatFieldValue(row, 'division', data.division);
+        setRepeatFieldValue(row, 'start_month', data.start_month);
+
+        if (endMonth) {
+            endMonth.value = '';
+            clearFieldWizardError(endMonth);
+        }
+
+        if (currentCheckbox) {
+            currentCheckbox.checked = true;
+            clearFieldWizardError(currentCheckbox);
+            applyCurrentToggles(row);
+        }
+    }
+
+    function notifyCurrentJobUnavailable() {
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Data V-People belum lengkap',
+                text: 'Pekerjaan sekarang belum bisa dicopy karena data V-People tidak tersedia.',
+                confirmButtonText: 'Mengerti',
+            });
+        }
+    }
+
+    function activeCopyCurrentJobToggle() {
+        return document.querySelector('[data-copy-current-job]:checked');
+    }
+
+    function syncCopyCurrentJobToggleAvailability() {
+        var activeToggle = activeCopyCurrentJobToggle();
+
+        document.querySelectorAll('[data-copy-current-job]').forEach(function (toggle) {
+            toggle.disabled = !!activeToggle && toggle !== activeToggle;
+        });
+    }
+
+    function handleCopyCurrentJobToggle(toggle) {
+        var row = toggle.closest('[data-repeat-item]');
+        var data = currentJobExperience();
+        var activeToggle = activeCopyCurrentJobToggle();
+
+        if (!toggle.checked || !row) {
+            syncCopyCurrentJobToggleAvailability();
+            return;
+        }
+
+        if (activeToggle && activeToggle !== toggle) {
+            toggle.checked = false;
+            syncCopyCurrentJobToggleAvailability();
+            return;
+        }
+
+        if (!currentJobHasValue(data)) {
+            toggle.checked = false;
+            syncCopyCurrentJobToggleAvailability();
+            notifyCurrentJobUnavailable();
+            return;
+        }
+
+        fillCurrentJobExperience(row);
+        syncCopyCurrentJobToggleAvailability();
     }
 
     function updateCounters() {
@@ -1729,6 +1839,10 @@
             }
         }
 
+        if (event.target.matches('[data-copy-current-job]')) {
+            handleCopyCurrentJobToggle(event.target);
+        }
+
         if (event.target.matches('[data-location-child]')) {
             loadLocationChild(event.target);
         }
@@ -1790,6 +1904,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         applyCurrentToggles(document);
+        syncCopyCurrentJobToggleAvailability();
         initOrganizationFields();
         syncFamilyDetails();
         initGuideTooltips();

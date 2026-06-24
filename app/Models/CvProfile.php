@@ -54,6 +54,7 @@ class CvProfile extends Model
         'department',
         'division',
         'position',
+        'current_job_entry_date',
         'profile_summary',
         'technical_skills',
         'non_technical_skills',
@@ -63,6 +64,7 @@ class CvProfile extends Model
     protected $casts = [
         'birth_date' => 'date',
         'marriage_date' => 'date',
+        'current_job_entry_date' => 'date',
         'has_children' => 'boolean',
         'children_names' => 'array',
         'technical_skills' => 'array',

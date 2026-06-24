@@ -64,6 +64,7 @@ class VPeopleService
                 'employees.area_kerja',
                 'employees.jabatan',
                 'employees.posisi',
+                'employees.entry_date',
                 'employees.pendidikan_terakhir',
                 'employees.nama_instansi_pendidikan',
                 'employees.jurusan',
@@ -98,6 +99,7 @@ class VPeopleService
             'department' => $employee['departemen'],
             'division' => $employee['nama_divisi'],
             'position' => $position,
+            'entry_date' => $this->dateOrNull($employee['entry_date'] ?? null),
             'education_level' => $employee['pendidikan_terakhir'],
             'education_institution' => $employee['nama_instansi_pendidikan'],
             'education_major' => $employee['jurusan'],
@@ -121,5 +123,18 @@ class VPeopleService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function dateOrNull($value): ?string
+    {
+        if (!$value || $value === '0000-00-00') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 }

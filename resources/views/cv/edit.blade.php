@@ -128,6 +128,14 @@ $genderText = strtolower((string) $selectedGender);
 $selectedGender = strpos($genderText, 'perempuan') !== false ? 'P' : (strpos($genderText, 'laki') !== false ? 'L' : null);
 }
 
+$currentJobCompany = \App\Services\VPeopleOrganizationService::workAreaLabel($profile->work_area) ?: ($profile->work_area ?: '');
+$currentJobExperience = [
+'position' => $profile->position ?: '',
+'company' => $currentJobCompany,
+'department' => $profile->department ?: '',
+'division' => $profile->division ?: '',
+'start_month' => $profile->current_job_entry_date ? $profile->current_job_entry_date->format('Y-m') : '',
+];
 $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($profile->updated_at)->timestamp : null;
 @endphp
 
@@ -162,7 +170,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
 
 <div class="row g-4 align-items-start">
     <div class="col-lg-8">
-        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" novalidate>
+        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" data-current-job-position="{{ $currentJobExperience['position'] }}" data-current-job-company="{{ $currentJobExperience['company'] }}" data-current-job-department="{{ $currentJobExperience['department'] }}" data-current-job-division="{{ $currentJobExperience['division'] }}" data-current-job-start-month="{{ $currentJobExperience['start_month'] }}" novalidate>
             @csrf
 
             <div class="cv-wizard" data-cv-wizard data-initial-step="{{ request('step') }}">

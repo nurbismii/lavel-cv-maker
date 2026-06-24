@@ -165,6 +165,7 @@ class CvProfileController extends Controller
                 'department' => $profile->department ?: $employee['department'],
                 'division' => $profile->division ?: $employee['division'],
                 'position' => $profile->position ?: $employee['position'],
+                'current_job_entry_date' => $profile->current_job_entry_date ?: $employee['entry_date'],
             ])->save();
 
             $request->user()->forceFill([

@@ -12,6 +12,13 @@
     </div>
 
     <div class="row g-3">
+        <div class="col-12">
+            <div class="form-check form-switch">
+                <input type="checkbox" class="form-check-input" id="exp_copy_current_{{ $index }}" data-copy-current-job>
+                <label class="form-check-label" for="exp_copy_current_{{ $index }}">Auto Fill</label>
+                <div class="form-text">Isi otomatis dari data pekerjaan di PT VDNI</div>
+            </div>
+        </div>
         <div class="col-md-6">
             <label class="form-label">Nama Posisi/Jabatan</label>
             <input type="text" name="experiences[{{ $index }}][position]" class="form-control" value="{{ $item['position'] ?? '' }}" placeholder="Mechanical Technician">

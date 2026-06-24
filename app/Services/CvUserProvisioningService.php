@@ -45,6 +45,7 @@ class CvUserProvisioningService
             'department' => $employee['department'],
             'division' => $employee['division'],
             'position' => $employee['position'],
+            'current_job_entry_date' => $employee['entry_date'],
         ]);
 
         $this->createEducationPrefill($profile, $employee);
