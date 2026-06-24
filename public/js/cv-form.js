@@ -507,6 +507,27 @@
         });
     }
 
+    function normalizedCurrentJobValue(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function rowMatchesCurrentJob(row, data) {
+        return ['position', 'company', 'department', 'division', 'start_month'].every(function (key) {
+            var field = repeatField(row, key);
+
+            return normalizedCurrentJobValue(field ? field.value : '') === normalizedCurrentJobValue(data[key]);
+        });
+    }
+
+    function currentJobExistsInAnotherRow(currentRow, data) {
+        var list = currentRow ? currentRow.closest('[data-repeat-list="experiences"]') : null;
+        var rows = list ? Array.prototype.slice.call(list.querySelectorAll('[data-repeat-item]')) : [];
+
+        return rows.some(function (row) {
+            return row !== currentRow && rowMatchesCurrentJob(row, data);
+        });
+    }
+
     function setRepeatFieldValue(row, name, value) {
         var field = repeatField(row, name);
 
@@ -552,8 +573,26 @@
         }
     }
 
+    function notifyCurrentJobDuplicate() {
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Riwayat sudah ada',
+                text: 'Pekerjaan sekarang sudah ada di baris pengalaman lain. Autofill tidak dilakukan agar data tidak duplikat.',
+                confirmButtonText: 'Mengerti',
+            });
+        }
+    }
+
     function activeCopyCurrentJobToggle() {
-        return document.querySelector('[data-copy-current-job]:checked');
+        var activeToggle = document.querySelector('[data-copy-current-job][data-copy-current-active="1"]');
+
+        if (activeToggle && !activeToggle.checked) {
+            delete activeToggle.dataset.copyCurrentActive;
+            return null;
+        }
+
+        return activeToggle;
     }
 
     function syncCopyCurrentJobToggleAvailability() {
@@ -570,23 +609,35 @@
         var activeToggle = activeCopyCurrentJobToggle();
 
         if (!toggle.checked || !row) {
+            delete toggle.dataset.copyCurrentActive;
             syncCopyCurrentJobToggleAvailability();
             return;
         }
 
         if (activeToggle && activeToggle !== toggle) {
             toggle.checked = false;
+            delete toggle.dataset.copyCurrentActive;
             syncCopyCurrentJobToggleAvailability();
             return;
         }
 
         if (!currentJobHasValue(data)) {
             toggle.checked = false;
+            delete toggle.dataset.copyCurrentActive;
             syncCopyCurrentJobToggleAvailability();
             notifyCurrentJobUnavailable();
             return;
         }
 
+        if (currentJobExistsInAnotherRow(row, data)) {
+            toggle.checked = false;
+            delete toggle.dataset.copyCurrentActive;
+            syncCopyCurrentJobToggleAvailability();
+            notifyCurrentJobDuplicate();
+            return;
+        }
+
+        toggle.dataset.copyCurrentActive = '1';
         fillCurrentJobExperience(row);
         syncCopyCurrentJobToggleAvailability();
     }

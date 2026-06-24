@@ -1,7 +1,7 @@
 <div class="repeat-item" data-repeat-item>
     @php
-        $departmentValue = $item['department'] ?? ($profile->department ?? '');
-        $divisionValue = $item['division'] ?? ($profile->division ?? '');
+        $departmentPlaceholder = $profile->department ?: 'Contoh: Maintenance';
+        $divisionPlaceholder = $profile->division ?: 'Contoh: Mechanical';
     @endphp
 
     <div class="repeat-item-header">
@@ -15,7 +15,7 @@
         <div class="col-12">
             <div class="form-check form-switch">
                 <input type="checkbox" class="form-check-input" id="exp_copy_current_{{ $index }}" data-copy-current-job>
-                <label class="form-check-label" for="exp_copy_current_{{ $index }}">Auto Fill</label>
+                <label class="form-check-label" for="exp_copy_current_{{ $index }}">Autofill</label>
                 <div class="form-text">Isi otomatis dari data pekerjaan di PT VDNI</div>
             </div>
         </div>
@@ -25,15 +25,15 @@
         </div>
         <div class="col-md-6">
             <label class="form-label">Nama Perusahaan</label>
-            <input type="text" name="experiences[{{ $index }}][company]" class="form-control" value="{{ $item['company'] ?? 'PT VDNI' }}" placeholder="PT VDNI">
+            <input type="text" name="experiences[{{ $index }}][company]" class="form-control" value="{{ $item['company'] ?? '' }}" placeholder="PT VDNI">
         </div>
         <div class="col-md-6">
             <label class="form-label">Departemen</label>
-            <input type="text" name="experiences[{{ $index }}][department]" class="form-control" value="{{ $departmentValue }}" placeholder="Contoh: Maintenance">
+            <input type="text" name="experiences[{{ $index }}][department]" class="form-control" value="{{ $item['department'] ?? '' }}" placeholder="{{ $departmentPlaceholder }}">
         </div>
         <div class="col-md-6">
             <label class="form-label">Divisi</label>
-            <input type="text" name="experiences[{{ $index }}][division]" class="form-control" value="{{ $divisionValue }}" placeholder="Contoh: Mechanical">
+            <input type="text" name="experiences[{{ $index }}][division]" class="form-control" value="{{ $item['division'] ?? '' }}" placeholder="{{ $divisionPlaceholder }}">
         </div>
         <div class="col-md-6">
             <label class="form-label">Mulai</label>
