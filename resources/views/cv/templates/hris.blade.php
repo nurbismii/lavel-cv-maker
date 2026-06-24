@@ -34,6 +34,26 @@
         </section>
     @endif
 
+    @if (count($preview['educations']))
+        <section class="cv-output-section">
+            <h2>Pendidikan</h2>
+            @foreach ($preview['educations'] as $education)
+                <div class="cv-output-entry">
+                    <h3>{{ $education['level'] ?: 'Jenjang belum diisi' }}</h3>
+                    <p class="cv-output-meta">
+                        {{ $education['institution'] ?: 'Institusi belum diisi' }}
+                        @if ($education['major'])
+                            <span>|</span> {{ $education['major'] }}
+                        @endif
+                        @if ($education['graduation_year'])
+                            <span>|</span> {{ $education['graduation_year'] }}
+                        @endif
+                    </p>
+                </div>
+            @endforeach
+        </section>
+    @endif
+
     @if (count($preview['experiences']))
         <section class="cv-output-section">
             <h2>Pengalaman Kerja</h2>
@@ -57,26 +77,6 @@
                             {!! $experience['responsibilities_html'] !!}
                         </div>
                     @endif
-                </div>
-            @endforeach
-        </section>
-    @endif
-
-    @if (count($preview['educations']))
-        <section class="cv-output-section">
-            <h2>Pendidikan</h2>
-            @foreach ($preview['educations'] as $education)
-                <div class="cv-output-entry">
-                    <h3>{{ $education['level'] ?: 'Jenjang belum diisi' }}</h3>
-                    <p class="cv-output-meta">
-                        {{ $education['institution'] ?: 'Institusi belum diisi' }}
-                        @if ($education['major'])
-                            <span>|</span> {{ $education['major'] }}
-                        @endif
-                        @if ($education['graduation_year'])
-                            <span>|</span> {{ $education['graduation_year'] }}
-                        @endif
-                    </p>
                 </div>
             @endforeach
         </section>

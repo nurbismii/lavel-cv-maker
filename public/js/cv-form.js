@@ -7,32 +7,66 @@
     var pendingPhotoApplied = false;
     var previewPhotoObjectUrl = null;
     var activeWizardIndex = 0;
-    var GUIDE_STORAGE_KEY = 'vitae.cv-form-guide.seen.v1';
+    var guideReadTimer = null;
+    var guideInitialWizardIndex = null;
+    var GUIDE_STORAGE_KEY = 'vitae.cv-form-guide.seen.v5';
+    var GUIDE_READ_DELAY_MS = 1400;
     var CV_GUIDE_STEPS = [
         {
             title: 'Isi CV Bertahap',
             selector: '[data-guide-target="wizard-steps"]',
-            html: 'Gunakan step di bagian atas untuk mengisi CV sesuai urutan. Step berikutnya baru bisa dibuka setelah step sebelumnya lengkap.',
+            mobilePosition: 'bottom',
+            icon: 'bi-list-check',
+            eyebrow: 'Alur Pengisian',
+            text: 'Isi CV dari kiri ke kanan supaya data yang masuk rapi dan mudah dicek.',
+            tips: [
+                'Step berikutnya akan terbuka setelah step sebelumnya lengkap.',
+                'Klik nama step untuk kembali mengecek bagian yang sudah diisi.',
+            ],
         },
         {
             title: 'Tombol Berikutnya dan Sebelumnya',
-            selector: '[data-guide-target="save-actions"]',
-            html: 'Gunakan Berikutnya untuk lanjut dan Sebelumnya untuk kembali. Jika ada data wajib yang kosong, sistem akan menahan Anda di step yang perlu dilengkapi.',
+            selector: '[data-guide-target="wizard-next"]',
+            mobilePosition: 'top',
+            icon: 'bi-arrow-left-right',
+            eyebrow: 'Navigasi',
+            text: 'Gunakan tombol navigasi untuk pindah step dengan kontrol yang jelas.',
+            tips: [
+                'Berikutnya akan mengecek kelengkapan data sebelum pindah.',
+                'Sebelumnya aman digunakan untuk memperbaiki data lama.',
+            ],
         },
         {
             title: 'Tambah Pengalaman',
+            panel: 'experience',
             selector: '[data-guide-target="add-experience"]',
-            html: 'Jika memiliki pengalaman kerja lebih dari satu, buka step Pengalaman lalu klik tombol Tambah untuk membuat baris pengalaman baru.',
+            mobilePosition: 'top',
+            icon: 'bi-plus-circle',
+            eyebrow: 'Riwayat Kerja',
+            text: 'Jika memiliki pengalaman kerja lebih dari satu, gunakan tombol Tambah di step Pengalaman.',
+            tips: [
+                'Satu pengalaman sebaiknya diisi dalam satu baris pengalaman.',
+                'Departemen dan divisi pada pengalaman boleh ditulis bebas sesuai riwayat kerja.',
+            ],
         },
         {
             title: 'Simpan Draft dan Preview',
-            selector: '[data-guide-target="save-actions"]',
-            html: 'Simpan Draft menyimpan data sementara. Simpan & Preview menyimpan data lalu membuka tampilan CV untuk dicek sebelum download PDF.',
+            selector: '[data-guide-target="save-draft"]',
+            mobilePosition: 'top',
+            icon: 'bi-save2',
+            eyebrow: 'Penyimpanan',
+            text: 'Simpan pekerjaan Anda secara berkala agar data tidak hilang.',
+            tips: [
+                'Simpan Draft bisa digunakan walau semua step belum selesai.',
+                'Simpan & Preview dipakai untuk mengecek tampilan CV sebelum download PDF.',
+            ],
         },
     ];
     var WIZARD_VALIDATION_RULES = {
         personal: {
             fields: [
+                { selector: '[name="full_name"]', label: 'Nama lengkap' },
+                { selector: '[name="birth_date"]', label: 'Tanggal lahir' },
                 { selector: '[name="birth_place"]', label: 'Tempat lahir' },
                 { selector: '[name="gender"]', label: 'Jenis kelamin' },
                 { selector: '[name="marital_status"]', label: 'Status pernikahan' },
@@ -292,9 +326,15 @@
     }
 
     function organizationRequestParams(parentSelect, child) {
+        var workAreaSelect = document.querySelector('#workAreaSelect');
         var departmentSelect = document.querySelector('#departmentSelect');
         var divisionSelect = document.querySelector('#divisionSelect');
         var params = {};
+
+        if (child && child.id === 'departmentSelect') {
+            params.work_area = workAreaSelect ? workAreaSelect.value : parentSelect.value;
+            return params;
+        }
 
         if (child && child.id === 'divisionSelect') {
             params.department_id = selectedOrganizationOptionId(parentSelect);
@@ -389,6 +429,41 @@
         });
     }
 
+    function maritalStatusNeedsFamilyDetails(value) {
+        value = String(value || '').trim().toLowerCase();
+
+        return value !== '' && value.indexOf('belum') === -1;
+    }
+
+    function syncFamilyDetails() {
+        var status = document.querySelector('[data-family-status]');
+        var details = document.querySelector('[data-family-details]');
+        var childrenToggle = details ? details.querySelector('[data-children-toggle]') : null;
+        var childrenFields = details ? details.querySelector('[data-children-fields]') : null;
+        var showDetails = maritalStatusNeedsFamilyDetails(status ? status.value : '');
+        var showChildren = showDetails && childrenToggle && childrenToggle.checked;
+
+        if (!details) {
+            return;
+        }
+
+        details.hidden = !showDetails;
+
+        details.querySelectorAll('input, textarea, select').forEach(function (field) {
+            field.disabled = !showDetails;
+        });
+
+        if (!childrenFields) {
+            return;
+        }
+
+        childrenFields.hidden = !showChildren;
+
+        childrenFields.querySelectorAll('input, textarea, select').forEach(function (field) {
+            field.disabled = !showChildren;
+        });
+    }
+
     function applyCurrentToggles(root) {
         (root || document).querySelectorAll('[data-current-checkbox]').forEach(function (checkbox) {
             var item = checkbox.closest('[data-repeat-item]');
@@ -449,8 +524,19 @@
     }
 
     function clearGuideHighlight() {
+        document.body.classList.remove('is-cv-guide-focus-mode');
+
+        document.querySelectorAll('.cv-guide-focus-layer').forEach(function (element) {
+            element.classList.remove('cv-guide-focus-layer');
+        });
+
         document.querySelectorAll('.cv-guide-highlight').forEach(function (element) {
             element.classList.remove('cv-guide-highlight');
+
+            if (element.dataset.guideTempTabindex === '1') {
+                element.removeAttribute('tabindex');
+                delete element.dataset.guideTempTabindex;
+            }
         });
     }
 
@@ -458,8 +544,67 @@
         return !!(element && element.getClientRects && element.getClientRects().length);
     }
 
-    function highlightGuideTarget(selector) {
-        var target = selector ? document.querySelector(selector) : null;
+    function applyGuideFocusLayer(target) {
+        ['.app-savebar'].forEach(function (selector) {
+            var layer = target.closest(selector);
+
+            if (layer) {
+                layer.classList.add('cv-guide-focus-layer');
+            }
+        });
+    }
+
+    function guideTargetForStep(step) {
+        if (!step) {
+            return null;
+        }
+
+        if (step.panel) {
+            var elements = wizardElements();
+            var panelIndex = elements ? wizardPanelIndexByKey(elements.panels, step.panel) : -1;
+
+            if (panelIndex > -1) {
+                setWizardStep(panelIndex, { scroll: false });
+            }
+        }
+
+        return step.selector ? document.querySelector(step.selector) : null;
+    }
+
+    function focusGuideTarget(target) {
+        if (!target || typeof target.focus !== 'function') {
+            return;
+        }
+
+        if (!target.matches('button, a, input, select, textarea, [tabindex]')) {
+            target.setAttribute('tabindex', '-1');
+            target.dataset.guideTempTabindex = '1';
+        }
+
+        window.setTimeout(function () {
+            target.focus({ preventScroll: true });
+        }, 220);
+    }
+
+    function isMobileGuide() {
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    }
+
+    function guidePopupPosition(step, target) {
+        var rect = target && target.getBoundingClientRect ? target.getBoundingClientRect() : null;
+
+        if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+            if (step.mobilePosition) {
+                return step.mobilePosition;
+            }
+
+            return rect && rect.top < (window.innerHeight / 2) ? 'bottom' : 'top';
+        }
+
+        return 'top-end';
+    }
+
+    function highlightGuideTarget(target, popupPosition) {
 
         clearGuideHighlight();
 
@@ -468,15 +613,84 @@
         }
 
         target.classList.add('cv-guide-highlight');
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        applyGuideFocusLayer(target);
+        document.body.classList.add('is-cv-guide-focus-mode');
+        target.scrollIntoView({
+            behavior: 'smooth',
+            block: isMobileGuide() ? (popupPosition === 'top' ? 'end' : 'start') : 'center',
+        });
+        focusGuideTarget(target);
     }
 
     function finishGuide(markSeen) {
         clearGuideHighlight();
 
+        if (guideInitialWizardIndex !== null) {
+            setWizardStep(guideInitialWizardIndex, { scroll: false });
+            guideInitialWizardIndex = null;
+        }
+
         if (markSeen) {
             storageSet(GUIDE_STORAGE_KEY, '1');
         }
+    }
+
+    function guideStepHtml(step, index) {
+        var total = CV_GUIDE_STEPS.length;
+        var progress = Math.round(((index + 1) / total) * 100);
+        var tips = (step.tips || []).map(function (tip) {
+            return '<li><i class="bi bi-check2-circle"></i><span>' + tip + '</span></li>';
+        }).join('');
+
+        return [
+            '<div class="cv-guide-modal">',
+            '<div class="cv-guide-progress" aria-hidden="true"><span style="width: ' + progress + '%"></span></div>',
+            '<div class="cv-guide-step-count">Panduan ' + (index + 1) + ' dari ' + total + '</div>',
+            '<div class="cv-guide-icon"><i class="bi ' + step.icon + '"></i></div>',
+            '<div class="cv-guide-eyebrow">' + step.eyebrow + '</div>',
+            '<p class="cv-guide-text">' + step.text + '</p>',
+            '<ul class="cv-guide-tips">' + tips + '</ul>',
+            '<div class="cv-guide-read-hint" data-guide-read-hint>Mohon baca sebentar, tombol lanjut akan aktif otomatis.</div>',
+            '</div>',
+        ].join('');
+    }
+
+    function holdGuideConfirmButton(isLastStep) {
+        var confirmButton = window.Swal.getConfirmButton();
+        var hint = document.querySelector('[data-guide-read-hint]');
+        var remaining = Math.ceil(GUIDE_READ_DELAY_MS / 1000);
+
+        if (!confirmButton) {
+            return;
+        }
+
+        if (guideReadTimer) {
+            window.clearInterval(guideReadTimer);
+            guideReadTimer = null;
+        }
+
+        confirmButton.disabled = true;
+        confirmButton.classList.add('disabled');
+        confirmButton.textContent = (isLastStep ? 'Selesai' : 'Lanjut') + ' (' + remaining + ')';
+
+        guideReadTimer = window.setInterval(function () {
+            remaining -= 1;
+
+            if (remaining > 0) {
+                confirmButton.textContent = (isLastStep ? 'Selesai' : 'Lanjut') + ' (' + remaining + ')';
+                return;
+            }
+
+            window.clearInterval(guideReadTimer);
+            guideReadTimer = null;
+            confirmButton.disabled = false;
+            confirmButton.classList.remove('disabled');
+            confirmButton.textContent = isLastStep ? 'Selesai' : 'Lanjut';
+
+            if (hint) {
+                hint.textContent = 'Silakan lanjut setelah memahami bagian ini.';
+            }
+        }, 1000);
     }
 
     function showGuideStep(index, markSeenOnClose) {
@@ -488,42 +702,62 @@
             return;
         }
 
-        highlightGuideTarget(step.selector);
+        var target = guideTargetForStep(step);
+        var popupPosition = guidePopupPosition(step, target);
 
-        window.Swal.fire({
-            icon: 'info',
-            title: step.title,
-            html: '<div class="text-start">' + step.html + '</div>',
-            confirmButtonText: isLastStep ? 'Selesai' : 'Lanjut',
-            denyButtonText: 'Kembali',
-            cancelButtonText: 'Tutup',
-            showDenyButton: index > 0,
-            showCancelButton: true,
-            reverseButtons: true,
-            allowOutsideClick: false,
-        }).then(function (result) {
-            clearGuideHighlight();
+        highlightGuideTarget(target, popupPosition);
 
-            if (result.isConfirmed) {
-                if (isLastStep) {
-                    finishGuide(markSeenOnClose);
+        window.setTimeout(function () {
+            window.Swal.fire({
+                title: step.title,
+                html: guideStepHtml(step, index),
+                position: popupPosition,
+                backdrop: false,
+                confirmButtonText: isLastStep ? 'Selesai' : 'Lanjut',
+                denyButtonText: 'Kembali',
+                cancelButtonText: 'Tutup',
+                showDenyButton: index > 0,
+                showCancelButton: true,
+                reverseButtons: true,
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'cv-guide-swal',
+                    htmlContainer: 'cv-guide-swal-html',
+                },
+                didOpen: function () {
+                    holdGuideConfirmButton(isLastStep);
+                },
+                willClose: function () {
+                    if (guideReadTimer) {
+                        window.clearInterval(guideReadTimer);
+                        guideReadTimer = null;
+                    }
+                },
+            }).then(function (result) {
+                clearGuideHighlight();
+
+                if (result.isConfirmed) {
+                    if (isLastStep) {
+                        finishGuide(markSeenOnClose);
+                        return;
+                    }
+
+                    showGuideStep(index + 1, markSeenOnClose);
                     return;
                 }
 
-                showGuideStep(index + 1, markSeenOnClose);
-                return;
-            }
+                if (result.isDenied) {
+                    showGuideStep(Math.max(0, index - 1), markSeenOnClose);
+                    return;
+                }
 
-            if (result.isDenied) {
-                showGuideStep(Math.max(0, index - 1), markSeenOnClose);
-                return;
-            }
-
-            finishGuide(markSeenOnClose);
-        });
+                finishGuide(markSeenOnClose);
+            });
+        }, 280);
     }
 
     function startCvGuide(markSeenOnClose) {
+        guideInitialWizardIndex = activeWizardIndex;
         showGuideStep(0, markSeenOnClose);
     }
 
@@ -797,6 +1031,20 @@
         });
     }
 
+    function validateEmergencyContactsWizardPanel(panel, options, errors) {
+        repeatRows(panel, 'emergency_contacts').forEach(function (row) {
+            var started = repeatRowHasValue(row, ['phone', 'name', 'relationship']);
+
+            if (!started) {
+                return;
+            }
+
+            validateRequiredField(row, '[name$="[phone]"]', 'Nomor kontak darurat', options, errors);
+            validateRequiredField(row, '[name$="[name]"]', 'Nama kontak darurat', options, errors);
+            validateRequiredField(row, '[name$="[relationship]"]', 'Hubungan kontak darurat', options, errors);
+        });
+    }
+
     function validateEducationWizardPanel(panel, options, errors) {
         var rows = repeatRows(panel, 'educations');
         var hasStartedRow = false;
@@ -909,6 +1157,10 @@
         }
 
         validateSimpleWizardPanel(panel, options || {}, errors);
+
+        if (panelKey === 'personal') {
+            validateEmergencyContactsWizardPanel(panel, options || {}, errors);
+        }
 
         if (panelKey === 'education') {
             validateEducationWizardPanel(panel, options || {}, errors);
@@ -1489,6 +1741,10 @@
             loadOrganizationChild(event.target);
         }
 
+        if (event.target.matches('[data-family-status], [data-children-toggle]')) {
+            syncFamilyDetails();
+        }
+
         if (event.target.matches('[data-photo-remove]')) {
             setPhotoPreview(event.target.checked ? null : (photoElements().frame.dataset.photoOriginal || null));
         }
@@ -1535,6 +1791,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         applyCurrentToggles(document);
         initOrganizationFields();
+        syncFamilyDetails();
         initGuideTooltips();
         updateCounters();
         initWizard();

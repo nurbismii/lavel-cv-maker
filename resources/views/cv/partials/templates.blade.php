@@ -6,6 +6,10 @@
     @include('cv.partials.education-row', ['index' => '__INDEX__', 'item' => [], 'educationLevels' => $educationLevels, 'yearOptions' => $yearOptions])
 </template>
 
+<template data-repeat-template="emergency_contacts">
+    @include('cv.partials.emergency-contact-row', ['index' => '__INDEX__', 'item' => [], 'emergencyRelationshipOptions' => $emergencyRelationshipOptions])
+</template>
+
 <template data-repeat-template="certifications">
     @include('cv.partials.certification-row', ['index' => '__INDEX__', 'item' => [], 'yearOptions' => $yearOptions, 'validUntilYearOptions' => $validUntilYearOptions])
 </template>

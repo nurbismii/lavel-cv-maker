@@ -2,7 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\CvEmergencyContact;
+use App\Models\CvProfile;
+use App\Services\VPeopleOrganizationService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SaveCvProfileRequest extends FormRequest
 {
@@ -24,11 +28,22 @@ class SaveCvProfileRequest extends FormRequest
     public function rules()
     {
         return [
+            'full_name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['required', 'date'],
+            'ktp_number' => ['nullable', 'digits:16'],
+            'family_card_number' => ['nullable', 'digits:16'],
             'birth_place' => ['nullable', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'gender' => ['nullable', 'in:L,P'],
+            'religion' => ['nullable', 'string', Rule::in(CvProfile::RELIGIONS)],
             'marital_status' => ['nullable', 'string', 'max:64'],
+            'marriage_date' => ['nullable', 'date'],
+            'spouse_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
+            'has_children' => ['nullable', 'boolean'],
+            'children_names' => ['nullable', 'array', 'max:3'],
+            'children_names.*' => ['nullable', 'string', 'max:255'],
             'province_id' => ['nullable', 'string', 'max:32'],
             'regency_id' => ['nullable', 'string', 'max:32'],
             'district_id' => ['nullable', 'string', 'max:32'],
@@ -36,6 +51,7 @@ class SaveCvProfileRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:2000'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['required', 'email', 'max:255'],
+            'work_area' => ['nullable', 'string', Rule::in(VPeopleOrganizationService::supportedWorkAreaCodes())],
             'department' => ['nullable', 'string', 'max:255'],
             'department_custom' => ['nullable', 'string', 'max:255'],
             'division' => ['nullable', 'string', 'max:255'],
@@ -45,6 +61,11 @@ class SaveCvProfileRequest extends FormRequest
             'profile_summary' => ['nullable', 'string', 'max:300'],
             'technical_skills' => ['nullable', 'string', 'max:1000'],
             'non_technical_skills' => ['nullable', 'string', 'max:1000'],
+
+            'emergency_contacts' => ['nullable', 'array'],
+            'emergency_contacts.*.phone' => ['nullable', 'digits_between:10,13'],
+            'emergency_contacts.*.name' => ['nullable', 'string', 'max:255'],
+            'emergency_contacts.*.relationship' => ['nullable', Rule::in(CvEmergencyContact::RELATIONSHIPS)],
 
             'experiences' => ['nullable', 'array'],
             'experiences.*.position' => ['nullable', 'string', 'max:255'],
@@ -91,6 +112,16 @@ class SaveCvProfileRequest extends FormRequest
         return [
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
+            'full_name.required' => 'Nama lengkap wajib diisi.',
+            'birth_date.required' => 'Tanggal lahir wajib diisi.',
+            'birth_date.date' => 'Format tanggal lahir tidak valid.',
+            'ktp_number.digits' => 'No. KTP harus berisi 16 digit angka.',
+            'family_card_number.digits' => 'No. KK harus berisi 16 digit angka.',
+            'religion.in' => 'Agama yang dipilih tidak valid.',
+            'marriage_date.date' => 'Format tanggal pernikahan tidak valid.',
+            'children_names.max' => 'Nama anak maksimal 3 orang.',
+            'emergency_contacts.*.phone.digits_between' => 'Nomor kontak darurat harus berisi 10 sampai 13 digit angka.',
+            'emergency_contacts.*.relationship.in' => 'Hubungan kontak darurat tidak valid.',
             'photo.image' => 'File foto harus berupa gambar.',
             'photo.mimes' => 'Foto hanya boleh JPG atau PNG.',
             'photo.max' => 'Ukuran foto maksimal 2MB.',
@@ -98,5 +129,32 @@ class SaveCvProfileRequest extends FormRequest
             '*.date_format' => 'Format bulan/tahun tidak valid.',
             '*.max' => 'Input melebihi batas karakter yang diperbolehkan.',
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            foreach ((array) $this->input('emergency_contacts', []) as $index => $contact) {
+                $phone = trim((string) ($contact['phone'] ?? ''));
+                $name = trim((string) ($contact['name'] ?? ''));
+                $relationship = trim((string) ($contact['relationship'] ?? ''));
+
+                if ($phone === '' && $name === '' && $relationship === '') {
+                    continue;
+                }
+
+                if ($phone === '') {
+                    $validator->errors()->add("emergency_contacts.{$index}.phone", 'Nomor kontak darurat wajib diisi.');
+                }
+
+                if ($name === '') {
+                    $validator->errors()->add("emergency_contacts.{$index}.name", 'Nama kontak darurat wajib diisi.');
+                }
+
+                if ($relationship === '') {
+                    $validator->errors()->add("emergency_contacts.{$index}.relationship", 'Hubungan kontak darurat wajib dipilih.');
+                }
+            }
+        });
     }
 }

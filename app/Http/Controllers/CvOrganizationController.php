@@ -10,10 +10,20 @@ use Throwable;
 
 class CvOrganizationController extends Controller
 {
-    public function departments(VPeopleOrganizationService $organizations): JsonResponse
+    public function departments(Request $request, VPeopleOrganizationService $organizations): JsonResponse
     {
-        return $this->safeResponse(function () use ($organizations) {
-            return $organizations->departments();
+        $request->validate([
+            'work_area' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        return $this->safeResponse(function () use ($request, $organizations) {
+            $workArea = $request->query('work_area');
+
+            if (trim((string) $workArea) === '') {
+                return [];
+            }
+
+            return $organizations->departments($workArea);
         });
     }
 

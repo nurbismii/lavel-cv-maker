@@ -6,13 +6,71 @@ use Illuminate\Support\Facades\DB;
 
 class VPeopleOrganizationService
 {
-    public function departments(): array
+    private const WORK_AREA_LABELS = [
+        'VDNI' => 'PT VDNI',
+        'VDNIP' => 'PT VDNIP',
+    ];
+
+    public static function supportedWorkAreaCodes(): array
     {
-        return DB::connection('vpeople')
+        return array_keys(self::WORK_AREA_LABELS);
+    }
+
+    public static function normalizeWorkArea($value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = strtoupper(preg_replace('/\s+/', ' ', $value));
+        $normalized = preg_replace('/^PT\s+/', '', $normalized);
+
+        return array_key_exists($normalized, self::WORK_AREA_LABELS) ? $normalized : null;
+    }
+
+    public static function workAreaLabel($value): ?string
+    {
+        $code = self::normalizeWorkArea($value);
+
+        return $code ? self::WORK_AREA_LABELS[$code] : null;
+    }
+
+    public static function workAreaOptions(): array
+    {
+        return array_map(function ($code, $name) {
+            return [
+                'id' => $code,
+                'name' => $name,
+            ];
+        }, array_keys(self::WORK_AREA_LABELS), self::WORK_AREA_LABELS);
+    }
+
+    public function workAreas(): array
+    {
+        return self::workAreaOptions();
+    }
+
+    public function departments(?string $workArea = null): array
+    {
+        $companyId = $this->companyIdForWorkArea($workArea);
+
+        if ($this->cleanId($workArea) && !$companyId) {
+            return [];
+        }
+
+        $query = DB::connection('vpeople')
             ->table('departemens')
             ->selectRaw('CAST(id AS CHAR) as id, departemen as name')
             ->whereNotNull('departemen')
-            ->where('departemen', '<>', '')
+            ->where('departemen', '<>', '');
+
+        if ($companyId) {
+            $query->where('perusahaan_id', $companyId);
+        }
+
+        return $query
             ->orderBy('departemen')
             ->get()
             ->map(function ($item) {
@@ -74,19 +132,29 @@ class VPeopleOrganizationService
             ->toArray();
     }
 
-    public function findDepartmentIdByName(?string $name): ?string
+    public function findDepartmentIdByName(?string $name, ?string $workArea = null): ?string
     {
         $name = $this->cleanName($name);
+        $companyId = $this->companyIdForWorkArea($workArea);
 
         if (!$name) {
             return null;
         }
 
-        $item = DB::connection('vpeople')
+        if ($this->cleanId($workArea) && !$companyId) {
+            return null;
+        }
+
+        $query = DB::connection('vpeople')
             ->table('departemens')
             ->selectRaw('CAST(id AS CHAR) as id')
-            ->whereRaw('LOWER(TRIM(departemen)) = ?', [strtolower($name)])
-            ->first();
+            ->whereRaw('LOWER(TRIM(departemen)) = ?', [strtolower($name)]);
+
+        if ($companyId) {
+            $query->where('perusahaan_id', $companyId);
+        }
+
+        $item = $query->first();
 
         return $item ? (string) $item->id : null;
     }
@@ -122,6 +190,23 @@ class VPeopleOrganizationService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function companyIdForWorkArea(?string $workArea): ?string
+    {
+        $workArea = self::normalizeWorkArea($workArea);
+
+        if (!$workArea) {
+            return null;
+        }
+
+        $item = DB::connection('vpeople')
+            ->table('perusahaan')
+            ->selectRaw('CAST(id AS CHAR) as id')
+            ->whereRaw('UPPER(TRIM(kode_perusahaan)) = ?', [$workArea])
+            ->first();
+
+        return $item ? (string) $item->id : null;
     }
 
     private function option($id, $name): array

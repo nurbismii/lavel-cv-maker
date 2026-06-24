@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CvProfile;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -48,8 +49,13 @@ class VPeopleService
                 'employees.nik',
                 'employees.nama_karyawan',
                 'employees.tgl_lahir',
+                'employees.no_ktp',
+                'employees.no_kk',
                 'employees.jenis_kelamin',
+                'employees.agama',
                 'employees.status_perkawinan',
+                'employees.nama_ibu_kandung',
+                'employees.nama_bapak',
                 'employees.status_karyawan',
                 'employees.status_resign',
                 'employees.no_telp',
@@ -77,8 +83,13 @@ class VPeopleService
             'nik' => $employee['nik'],
             'name' => $employee['nama_karyawan'],
             'birth_date' => $employee['tgl_lahir'],
+            'ktp_number' => $this->digitsOnly($employee['no_ktp'] ?? null),
+            'family_card_number' => $this->digitsOnly($employee['no_kk'] ?? null),
             'gender' => $employee['jenis_kelamin'],
+            'religion' => CvProfile::normalizeReligion($employee['agama'] ?? null),
             'marital_status' => $employee['status_perkawinan'],
+            'mother_name' => $this->nullableTrim($employee['nama_ibu_kandung'] ?? null),
+            'spouse_name' => $this->nullableTrim($employee['nama_bapak'] ?? null),
             'contract_status' => $employee['status_karyawan'],
             'resign_status' => $employee['status_resign'],
             'phone' => $employee['no_telp'],
@@ -92,5 +103,23 @@ class VPeopleService
             'education_major' => $employee['jurusan'],
             'graduation_date' => $employee['tanggal_kelulusan'],
         ];
+    }
+
+    private function digitsOnly($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        return $digits ?: null;
+    }
+
+    private function nullableTrim($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

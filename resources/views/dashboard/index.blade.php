@@ -53,7 +53,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Area Kerja</label>
-                        <input type="text" class="form-control readonly-field" value="{{ optional($profile)->work_area ?: '-' }}" readonly>
+                        <input type="text" class="form-control readonly-field" value="{{ \App\Services\VPeopleOrganizationService::workAreaLabel(optional($profile)->work_area) ?: optional($profile)->work_area ?: '-' }}" readonly>
                     </div>
                 </div>
 

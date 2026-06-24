@@ -73,7 +73,7 @@ class CvSummaryService
         }
 
         if ($profile->work_area) {
-            return 'area kerja ' . $this->cleanLabel($profile->work_area);
+            return 'area kerja ' . (VPeopleOrganizationService::workAreaLabel($profile->work_area) ?: $this->cleanLabel($profile->work_area));
         }
 
         $company = $this->cleanLabel(optional($profile->experiences->first())->company);

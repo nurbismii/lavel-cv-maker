@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SaveCvProfileRequest;
 use App\Models\CvCertification;
 use App\Models\CvEducation;
+use App\Models\CvEmergencyContact;
 use App\Models\CvExperience;
 use App\Models\CvLanguage;
 use App\Models\CvOrganization;
@@ -38,6 +39,7 @@ class CvProfileController extends Controller
         $profile->load([
             'experiences',
             'educations',
+            'emergencyContacts',
             'certifications',
             'languages',
             'projects',
@@ -154,6 +156,12 @@ class CvProfileController extends Controller
             }
 
             $profile->forceFill([
+                'ktp_number' => $profile->ktp_number ?: $employee['ktp_number'],
+                'family_card_number' => $profile->family_card_number ?: $employee['family_card_number'],
+                'religion' => $profile->religion ?: $employee['religion'],
+                'mother_name' => $profile->mother_name ?: $employee['mother_name'],
+                'spouse_name' => $profile->spouse_name ?: $employee['spouse_name'],
+                'work_area' => $profile->work_area ?: $employee['work_area'],
                 'department' => $profile->department ?: $employee['department'],
                 'division' => $profile->division ?: $employee['division'],
                 'position' => $profile->position ?: $employee['position'],
@@ -180,15 +188,33 @@ class CvProfileController extends Controller
 
         try {
             DB::transaction(function () use ($request, $profile, $locationSelection, $photoPath) {
+                $requiresFamilyDetails = $this->requiresFamilyDetails($request->input('marital_status'));
+                $hasChildren = $requiresFamilyDetails && $request->boolean('has_children');
+
                 $profile->update(array_merge([
                     'status' => CvProfile::STATUS_DRAFT,
                     'photo_path' => $photoPath,
+                    'full_name' => $request->input('full_name'),
+                    'birth_date' => $request->input('birth_date'),
+                    'ktp_number' => $this->digitsOnly($request->input('ktp_number')),
+                    'family_card_number' => $this->digitsOnly($request->input('family_card_number')),
                     'birth_place' => $request->input('birth_place'),
                     'gender' => $request->input('gender'),
+                    'religion' => CvProfile::normalizeReligion($request->input('religion')),
                     'marital_status' => $request->input('marital_status'),
+                    'marriage_date' => $requiresFamilyDetails && $request->filled('marriage_date')
+                        ? $request->input('marriage_date')
+                        : null,
+                    'spouse_name' => $requiresFamilyDetails
+                        ? $this->nullableTrim($request->input('spouse_name'))
+                        : null,
+                    'has_children' => $hasChildren,
+                    'children_names' => $hasChildren ? $this->childrenNames($request->input('children_names', [])) : [],
+                    'mother_name' => $this->nullableTrim($request->input('mother_name')),
                     'address' => $request->input('address'),
                     'phone' => $request->input('phone'),
                     'email' => $request->input('email'),
+                    'work_area' => $this->workAreaValue($request),
                     'department' => $this->organizationValue($request, 'department'),
                     'division' => $this->organizationValue($request, 'division'),
                     'position' => $this->organizationValue($request, 'position'),
@@ -197,6 +223,7 @@ class CvProfileController extends Controller
                     'non_technical_skills' => $this->splitList($request->input('non_technical_skills')),
                 ], $locationSelection));
 
+                $this->syncEmergencyContacts($profile, $request->input('emergency_contacts', []));
                 $this->syncExperiences($profile, $request->input('experiences', []));
                 $this->syncEducations($profile, $request->input('educations', []));
                 $this->syncCertifications($profile, $request->input('certifications', []));
@@ -286,16 +313,21 @@ class CvProfileController extends Controller
         $organizationOptions = $this->emptyOrganizationOptions();
 
         try {
+            $workArea = VPeopleOrganizationService::normalizeWorkArea(
+                $request->old('work_area', $profile->work_area)
+            );
             $department = $request->old('department', $profile->department);
             $division = $request->old('division', $profile->division);
 
-            $departmentId = $organizationService->findDepartmentIdByName($department);
+            $departmentId = $organizationService->findDepartmentIdByName($department, $workArea);
             $divisionId = $organizationService->findDivisionIdByName($departmentId, $division);
 
             $organizationOptions = [
-                'departments' => $organizationService->departments(),
+                'work_areas' => $organizationService->workAreas(),
+                'departments' => $workArea ? $organizationService->departments($workArea) : [],
                 'divisions' => $departmentId ? $organizationService->divisions($departmentId) : [],
                 'positions' => $organizationService->positions($departmentId, $divisionId),
+                'selected_work_area' => $workArea,
                 'selected_department_id' => $departmentId,
                 'selected_division_id' => $divisionId,
             ];
@@ -313,9 +345,11 @@ class CvProfileController extends Controller
     private function emptyOrganizationOptions(): array
     {
         return [
+            'work_areas' => VPeopleOrganizationService::workAreaOptions(),
             'departments' => [],
             'divisions' => [],
             'positions' => [],
+            'selected_work_area' => null,
             'selected_department_id' => null,
             'selected_division_id' => null,
         ];
@@ -357,6 +391,11 @@ class CvProfileController extends Controller
         return $selectedValue === '' || $selectedValue === '__custom__' ? null : $selectedValue;
     }
 
+    private function workAreaValue(SaveCvProfileRequest $request): ?string
+    {
+        return VPeopleOrganizationService::normalizeWorkArea($request->input('work_area'));
+    }
+
     private function syncExperiences(CvProfile $profile, array $items): void
     {
         $profile->experiences()->delete();
@@ -381,6 +420,26 @@ class CvProfileController extends Controller
                 'end_month' => !empty($item['is_current']) ? null : $this->monthDate($item['end_month'] ?? null),
                 'is_current' => !empty($item['is_current']),
                 'responsibilities' => $responsibilities,
+                'sort_order' => $sortOrder++,
+            ]);
+        }
+    }
+
+    private function syncEmergencyContacts(CvProfile $profile, array $items): void
+    {
+        $profile->emergencyContacts()->delete();
+        $sortOrder = 0;
+
+        foreach ($items as $item) {
+            if (!$this->rowHasValue($item, ['phone', 'name', 'relationship'])) {
+                continue;
+            }
+
+            CvEmergencyContact::create([
+                'cv_profile_id' => $profile->id,
+                'phone' => $this->digitsOnly($item['phone'] ?? null),
+                'name' => $item['name'] ?: null,
+                'relationship' => $item['relationship'] ?: null,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -514,6 +573,56 @@ class CvProfileController extends Controller
         }
 
         return array_values(array_filter(array_map('trim', preg_split('/[,;\n]+/', $value))));
+    }
+
+    private function requiresFamilyDetails(?string $maritalStatus): bool
+    {
+        $maritalStatus = strtolower(trim((string) $maritalStatus));
+
+        return $maritalStatus !== '' && strpos($maritalStatus, 'belum') === false;
+    }
+
+    private function childrenNames($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $names = [];
+
+        foreach ($items as $item) {
+            $name = trim((string) $item);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $names[] = $name;
+
+            if (count($names) === 3) {
+                break;
+            }
+        }
+
+        return $names;
+    }
+
+    private function nullableTrim(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function digitsOnly(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+
+        return $digits ?: null;
     }
 
     private function rowHasValue(array $row, array $keys): bool
