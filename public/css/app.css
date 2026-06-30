@@ -14,8 +14,9 @@
     --app-border: #e2e8f0;
     --app-bg: #f8fafc;
     --app-card: #ffffff;
-    --app-radius: 16px;
-    --app-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+    --app-surface-subtle: #f8fafc;
+    --app-radius: 10px;
+    --app-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 18px rgba(15, 23, 42, .04);
 }
 
 body {
@@ -85,7 +86,7 @@ body {
 }
 
 .app-main {
-    padding: 2rem 0;
+    padding: 1.5rem 0 2rem;
 }
 
 .app-page-header {
@@ -93,7 +94,7 @@ body {
     justify-content: space-between;
     gap: 1rem;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .app-page-eyebrow {
@@ -133,11 +134,11 @@ body {
 }
 
 .app-card-header {
-    padding: 1.25rem 1.25rem 0;
+    padding: 1rem 1rem 0;
 }
 
 .app-card-body {
-    padding: 1.25rem;
+    padding: 1rem;
 }
 
 .app-card-title {
@@ -151,13 +152,15 @@ body {
 }
 
 .app-alert {
-    border-radius: 14px;
+    border-radius: var(--app-radius);
     border-width: 1px;
 }
 
 .btn {
     font-weight: 700;
-    border-radius: 12px;
+    border-radius: 8px;
+    min-height: 40px;
+    transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
 
 .btn-primary {
@@ -236,14 +239,14 @@ body {
 .form-control,
 .form-select {
     border-color: var(--app-border);
-    border-radius: 12px;
-    min-height: 42px;
+    border-radius: 8px;
+    min-height: 44px;
 }
 
 .form-control:focus,
 .form-select:focus {
-    border-color: rgba(15, 118, 110, .55);
-    box-shadow: 0 0 0 .2rem rgba(15, 118, 110, .12);
+    border-color: rgba(15, 118, 110, .72);
+    box-shadow: 0 0 0 .18rem rgba(15, 118, 110, .14);
 }
 
 .text-muted {
@@ -304,16 +307,17 @@ body {
 }
 
 .readonly-field {
-    background: #f8fafc;
+    background: var(--app-surface-subtle);
     color: #334155;
+    border-style: dashed;
 }
 
 .cv-field-group {
     padding: 1rem;
     border: 1px solid var(--app-border);
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+    border-radius: var(--app-radius);
+    background: linear-gradient(180deg, #ffffff 0%, var(--app-surface-subtle) 100%);
+    box-shadow: none;
 }
 
 .cv-field-group--family {
@@ -325,13 +329,13 @@ body {
     display: flex;
     align-items: center;
     gap: .75rem;
-    margin-bottom: 1rem;
+    margin-bottom: .85rem;
 }
 
 .cv-field-group-header h3 {
     margin: 0;
     color: var(--app-dark);
-    font-size: .98rem;
+    font-size: .95rem;
     font-weight: 800;
 }
 
@@ -342,29 +346,29 @@ body {
 }
 
 .cv-field-group-icon {
-    width: 38px;
-    height: 38px;
-    flex: 0 0 38px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     display: grid;
     place-items: center;
     border: 1px solid rgba(15, 118, 110, .16);
-    border-radius: 12px;
+    border-radius: 9px;
     background: var(--app-primary-soft);
     color: var(--app-primary);
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 .cv-field-card,
 .cv-children-group,
 .cv-family-toggle {
     border: 1px solid rgba(148, 163, 184, .28);
-    border-radius: 12px;
+    border-radius: 9px;
     background: rgba(255, 255, 255, .86);
 }
 
 .cv-field-card {
     height: 100%;
-    padding: .9rem;
+    padding: .85rem;
 }
 
 .cv-family-toggle {
@@ -391,7 +395,7 @@ body {
 }
 
 .cv-children-group {
-    padding: 1rem;
+    padding: .9rem;
     border-style: dashed;
 }
 
@@ -399,10 +403,10 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1rem;
+    padding: .9rem;
     border: 1px solid var(--app-border);
-    border-radius: 14px;
-    background: #f8fafc;
+    border-radius: var(--app-radius);
+    background: var(--app-surface-subtle);
 }
 
 .cv-photo-frame {
@@ -444,17 +448,17 @@ body {
 
 .cv-document-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: .85rem;
 }
 
 .cv-document-card {
     min-height: 100%;
-    padding: 1rem;
+    padding: .95rem;
     border: 1px solid rgba(148, 163, 184, .32);
-    border-radius: 12px;
+    border-radius: var(--app-radius);
     background: #ffffff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+    box-shadow: none;
 }
 
 .cv-document-card.has-document {
@@ -472,21 +476,21 @@ body {
 .cv-document-card-header h3 {
     margin: 0 0 .45rem;
     color: var(--app-dark);
-    font-size: .98rem;
+    font-size: .95rem;
     font-weight: 800;
 }
 
 .cv-document-icon {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     display: grid;
     place-items: center;
     border: 1px solid rgba(15, 118, 110, .18);
-    border-radius: 12px;
+    border-radius: 9px;
     background: var(--app-primary-soft);
     color: var(--app-primary);
-    font-size: 1.15rem;
+    font-size: 1rem;
 }
 
 .cv-document-meta {
@@ -504,10 +508,10 @@ body {
 }
 
 .cv-document-current {
-    padding: .8rem;
+    padding: .75rem;
     border: 1px solid rgba(15, 118, 110, .18);
-    border-radius: 10px;
-    background: #f8fafc;
+    border-radius: 8px;
+    background: var(--app-surface-subtle);
 }
 
 .cv-document-file-name {
@@ -528,7 +532,7 @@ body {
 .cv-document-remove {
     padding: .75rem .75rem .75rem 2.25rem;
     border: 1px dashed rgba(220, 38, 38, .28);
-    border-radius: 10px;
+    border-radius: 8px;
     background: #fff7ed;
 }
 
@@ -542,7 +546,7 @@ body {
     height: clamp(560px, 72vh, 760px);
     overflow: hidden;
     border: 1px solid var(--app-border);
-    border-radius: 12px;
+    border-radius: var(--app-radius);
     background: #111827;
 }
 
@@ -597,10 +601,10 @@ body {
 
 .repeat-item {
     border: 1px solid var(--app-border);
-    border-radius: 14px;
-    padding: 1rem;
+    border-radius: var(--app-radius);
+    padding: .95rem;
     background: #ffffff;
-    margin-bottom: 1rem;
+    margin-bottom: .85rem;
 }
 
 .repeat-item:last-child {
@@ -615,8 +619,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: .75rem;
+    margin-bottom: .85rem;
 }
 
 #cvForm .is-field-active,
@@ -625,8 +629,8 @@ body {
 }
 
 #cvForm.is-field-focus-mode .is-field-dimmed {
-    opacity: .38;
-    filter: blur(1.1px) grayscale(.12);
+    opacity: .52;
+    filter: grayscale(.08);
     transform: scale(.995);
 }
 
@@ -654,22 +658,33 @@ body {
     bottom: 0;
     z-index: 20;
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: .75rem;
-    padding: 1rem;
+    padding: .85rem;
     margin-top: 1rem;
-    background: rgba(248, 250, 252, .92);
+    background: rgba(255, 255, 255, .94);
     border: 1px solid var(--app-border);
     border-radius: var(--app-radius);
     backdrop-filter: blur(10px);
+    box-shadow: 0 -1px 2px rgba(15, 23, 42, .04), 0 -10px 20px rgba(15, 23, 42, .04);
+}
+
+.app-savebar > .btn,
+.cv-wizard-action-group .btn {
+    white-space: nowrap;
 }
 
 .cv-side-panel {
     top: 1rem;
 }
 
+.cv-side-panel .app-card-body {
+    padding: 1rem;
+}
+
 .cv-progress {
-    height: 10px;
+    height: 8px;
     overflow: hidden;
     background: var(--app-success-soft);
     border-radius: 999px;
@@ -681,6 +696,7 @@ body {
 
 .cv-wizard-header {
     overflow: hidden;
+    box-shadow: none;
 }
 
 .cv-wizard-counter {
@@ -688,7 +704,7 @@ body {
 }
 
 .cv-wizard-progress {
-    height: 8px;
+    height: 7px;
     overflow: hidden;
     background: #e2e8f0;
     border-radius: 999px;
@@ -704,22 +720,22 @@ body {
 
 .cv-wizard-steps {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: .65rem;
+    grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
+    gap: .5rem;
 }
 
 .cv-wizard-step {
-    min-height: 76px;
+    min-height: 68px;
     min-width: 0;
     display: flex;
     align-items: flex-start;
-    gap: .6rem;
-    padding: .75rem;
+    gap: .55rem;
+    padding: .65rem;
     text-align: left;
     color: var(--app-muted);
     background: #ffffff;
     border: 1px solid var(--app-border);
-    border-radius: 14px;
+    border-radius: var(--app-radius);
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
 }
 
@@ -727,7 +743,7 @@ body {
 .cv-wizard-step:focus {
     color: var(--app-dark);
     border-color: rgba(15, 118, 110, .38);
-    box-shadow: 0 0 0 .2rem rgba(15, 118, 110, .08);
+    box-shadow: 0 0 0 .16rem rgba(15, 118, 110, .10);
 }
 
 .cv-wizard-step.is-locked {
@@ -746,19 +762,20 @@ body {
 .cv-wizard-step.is-active {
     color: var(--app-dark);
     background: #f0fdfa;
-    border-color: rgba(15, 118, 110, .45);
-    box-shadow: inset 0 0 0 1px rgba(15, 118, 110, .08);
+    border-color: rgba(15, 118, 110, .62);
+    box-shadow: inset 3px 0 0 var(--app-primary);
 }
 
 .cv-wizard-step.has-error {
-    border-color: rgba(220, 38, 38, .45);
+    border-color: rgba(220, 38, 38, .58);
     background: #fff7f7;
+    box-shadow: inset 3px 0 0 var(--app-danger);
 }
 
 .cv-wizard-step-number {
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
     display: grid;
     place-items: center;
     color: var(--app-muted);
@@ -797,13 +814,13 @@ body {
 
 .cv-wizard-step-title {
     color: inherit;
-    font-size: .84rem;
+    font-size: .82rem;
     font-weight: 800;
 }
 
 .cv-wizard-step-subtitle {
-    margin-top: .2rem;
-    font-size: .72rem;
+    margin-top: .15rem;
+    font-size: .7rem;
     font-weight: 600;
 }
 
@@ -817,9 +834,10 @@ body {
 
 .cv-wizard-action-group {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: .75rem;
+    gap: .6rem;
 }
 
 .cv-guide-highlight {
@@ -958,7 +976,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 
 .cv-checklist {
     display: grid;
-    gap: .65rem;
+    gap: .55rem;
 }
 
 .cv-check {
@@ -966,6 +984,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
     align-items: center;
     gap: .5rem;
     color: var(--app-muted);
+    font-size: .9rem;
     font-weight: 600;
 }
 
@@ -1203,7 +1222,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 
 @media (max-width: 768px) {
     .app-main {
-        padding: 1.25rem 0;
+        padding: 1rem 0 1.25rem;
     }
 
     .app-page-header {
@@ -1227,15 +1246,18 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
         justify-content: stretch;
         gap: .65rem;
         padding: .75rem;
+        box-shadow: none;
     }
 
     .app-savebar > .btn {
         width: 100%;
+        min-height: 44px;
+        white-space: normal;
     }
 
     #cvForm.is-field-focus-mode .is-field-dimmed {
-        opacity: .5;
-        filter: blur(.75px) grayscale(.08);
+        opacity: .65;
+        filter: grayscale(.06);
     }
 
     .cv-wizard-action-group {
@@ -1248,6 +1270,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 
     .cv-wizard-action-group .btn {
         width: 100%;
+        min-height: 44px;
         min-width: 0;
         padding-right: .5rem;
         padding-left: .5rem;
@@ -1347,7 +1370,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
     }
 
     .cv-field-group {
-        padding: .85rem;
+        padding: .8rem;
     }
 
     .cv-field-group-header {
@@ -1371,6 +1394,7 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 
     .cv-photo-uploader {
         display: grid;
+        gap: .85rem;
     }
 
     .cv-photo-crop-area {
@@ -1387,5 +1411,26 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 
     .cv-output-header h1 {
         font-size: 1.35rem;
+    }
+}
+
+@media (max-width: 430px) {
+    .cv-wizard-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-wizard-action-group {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-wizard-action-group [data-wizard-prev],
+    .cv-wizard-action-group button[formaction],
+    .cv-wizard-action-group [data-wizard-next],
+    .cv-wizard-action-group button[type="submit"]:not([formaction]) {
+        grid-column: auto;
+    }
+
+    .cv-document-grid {
+        grid-template-columns: 1fr;
     }
 }

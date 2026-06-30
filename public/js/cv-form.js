@@ -765,8 +765,53 @@
         return 'top-end';
     }
 
-    function highlightGuideTarget(target, popupPosition) {
+    function scrollGuideTargetIntoView(target, popupPosition) {
+        if (!target || !target.getBoundingClientRect || typeof window.scrollTo !== 'function') {
+            return;
+        }
 
+        var previousHtmlScrollBehavior = document.documentElement.style.scrollBehavior;
+        var previousBodyScrollBehavior = document.body.style.scrollBehavior;
+        var rect = target.getBoundingClientRect();
+        var currentScroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        var scrollTop = currentScroll + rect.top - ((window.innerHeight - rect.height) / 2);
+
+        if (isMobileGuide()) {
+            scrollTop = popupPosition === 'top'
+                ? currentScroll + rect.bottom - window.innerHeight + 176
+                : currentScroll + rect.top - 24;
+        }
+
+        scrollTop = Math.max(0, scrollTop);
+        document.documentElement.style.scrollBehavior = 'auto';
+        document.body.style.scrollBehavior = 'auto';
+
+        try {
+            document.documentElement.scrollTop = scrollTop;
+            document.body.scrollTop = scrollTop;
+            window.scrollTo(0, scrollTop);
+        } finally {
+            document.documentElement.style.scrollBehavior = previousHtmlScrollBehavior;
+            document.body.style.scrollBehavior = previousBodyScrollBehavior;
+        }
+    }
+
+    function scheduleGuideTargetScroll(target, popupPosition) {
+        scrollGuideTargetIntoView(target, popupPosition);
+
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function () {
+                scrollGuideTargetIntoView(target, popupPosition);
+            });
+            return;
+        }
+
+        window.setTimeout(function () {
+            scrollGuideTargetIntoView(target, popupPosition);
+        }, 0);
+    }
+
+    function highlightGuideTarget(target, popupPosition) {
         clearGuideHighlight();
 
         if (!isGuideTargetVisible(target)) {
@@ -776,10 +821,7 @@
         target.classList.add('cv-guide-highlight');
         applyGuideFocusLayer(target);
         document.body.classList.add('is-cv-guide-focus-mode');
-        target.scrollIntoView({
-            behavior: 'smooth',
-            block: isMobileGuide() ? (popupPosition === 'top' ? 'end' : 'start') : 'center',
-        });
+        scrollGuideTargetIntoView(target, popupPosition);
         focusGuideTarget(target);
     }
 
@@ -887,6 +929,7 @@
                 },
                 didOpen: function () {
                     holdGuideConfirmButton(isLastStep);
+                    scheduleGuideTargetScroll(target, popupPosition);
                 },
                 willClose: function () {
                     if (guideReadTimer) {
