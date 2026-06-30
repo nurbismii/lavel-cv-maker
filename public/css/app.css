@@ -442,6 +442,102 @@ body {
     min-width: 0;
 }
 
+.cv-document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.cv-document-card {
+    min-height: 100%;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, .32);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+}
+
+.cv-document-card.has-document {
+    border-color: rgba(15, 118, 110, .26);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fffd 100%);
+}
+
+.cv-document-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    margin-bottom: .8rem;
+}
+
+.cv-document-card-header h3 {
+    margin: 0 0 .45rem;
+    color: var(--app-dark);
+    font-size: .98rem;
+    font-weight: 800;
+}
+
+.cv-document-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(15, 118, 110, .18);
+    border-radius: 12px;
+    background: var(--app-primary-soft);
+    color: var(--app-primary);
+    font-size: 1.15rem;
+}
+
+.cv-document-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.cv-document-description {
+    min-height: 2.6rem;
+    margin-bottom: 1rem;
+    color: var(--app-muted);
+    font-size: .86rem;
+    line-height: 1.5;
+}
+
+.cv-document-current {
+    padding: .8rem;
+    border: 1px solid rgba(15, 118, 110, .18);
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.cv-document-file-name {
+    overflow-wrap: anywhere;
+    color: var(--app-dark);
+    font-weight: 800;
+}
+
+.cv-document-file-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-top: .2rem;
+    color: var(--app-muted);
+    font-size: .78rem;
+}
+
+.cv-document-remove {
+    padding: .75rem .75rem .75rem 2.25rem;
+    border: 1px dashed rgba(220, 38, 38, .28);
+    border-radius: 10px;
+    background: #fff7ed;
+}
+
+.cv-document-remove .form-check-label {
+    color: #991b1b;
+    font-size: .86rem;
+    font-weight: 700;
+}
+
 .cv-photo-crop-area {
     height: clamp(560px, 72vh, 760px);
     overflow: hidden;

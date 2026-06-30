@@ -13,6 +13,8 @@ class CvProfile extends Model
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_GENERATED = 'generated';
 
+    public const BLOOD_TYPES = ['A 型', 'B 型', 'AB 型', 'O 型'];
+
     public const RELIGIONS = [
         'ISLAM 伊斯兰教',
         'KRISTEN PROTESTAN 基督教新教',
@@ -32,6 +34,9 @@ class CvProfile extends Model
         'ktp_number',
         'family_card_number',
         'gender',
+        'height_cm',
+        'weight_kg',
+        'blood_type',
         'religion',
         'marital_status',
         'marriage_date',
@@ -65,6 +70,8 @@ class CvProfile extends Model
         'birth_date' => 'date',
         'marriage_date' => 'date',
         'current_job_entry_date' => 'date',
+        'height_cm' => 'integer',
+        'weight_kg' => 'decimal:2',
         'has_children' => 'boolean',
         'children_names' => 'array',
         'technical_skills' => 'array',
@@ -133,6 +140,11 @@ class CvProfile extends Model
     public function emergencyContacts()
     {
         return $this->hasMany(CvEmergencyContact::class)->orderBy('sort_order');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(CvDocument::class)->orderBy('type');
     }
 
     public function certifications()

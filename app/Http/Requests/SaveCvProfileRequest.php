@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\CvEmergencyContact;
+use App\Models\CvDocument;
 use App\Models\CvProfile;
 use App\Services\VPeopleOrganizationService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,7 +36,14 @@ class SaveCvProfileRequest extends FormRequest
             'birth_place' => ['nullable', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
+            'documents' => ['nullable', 'array'],
+            'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'remove_documents' => ['nullable', 'array'],
+            'remove_documents.*' => ['nullable', 'boolean'],
             'gender' => ['nullable', 'in:L,P'],
+            'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
+            'weight_kg' => ['nullable', 'numeric', 'min:20', 'max:300'],
+            'blood_type' => ['nullable', 'string', Rule::in(CvProfile::BLOOD_TYPES)],
             'religion' => ['nullable', 'string', Rule::in(CvProfile::RELIGIONS)],
             'marital_status' => ['nullable', 'string', 'max:64'],
             'marriage_date' => ['nullable', 'date'],
@@ -125,6 +133,16 @@ class SaveCvProfileRequest extends FormRequest
             'photo.image' => 'File foto harus berupa gambar.',
             'photo.mimes' => 'Foto hanya boleh JPG atau PNG.',
             'photo.max' => 'Ukuran foto maksimal 2MB.',
+            'documents.*.file' => 'Dokumen karyawan harus berupa file.',
+            'documents.*.mimes' => 'Dokumen karyawan hanya boleh PDF, JPG, JPEG, atau PNG.',
+            'documents.*.max' => 'Ukuran dokumen karyawan maksimal 5MB per file.',
+            'height_cm.integer' => 'Tinggi badan harus berupa angka bulat dalam cm.',
+            'height_cm.min' => 'Tinggi badan minimal 50 cm.',
+            'height_cm.max' => 'Tinggi badan maksimal 250 cm.',
+            'weight_kg.numeric' => 'Berat badan harus berupa angka dalam kg.',
+            'weight_kg.min' => 'Berat badan minimal 20 kg.',
+            'weight_kg.max' => 'Berat badan maksimal 300 kg.',
+            'blood_type.in' => 'Golongan darah yang dipilih tidak valid.',
             'profile_summary.max' => 'Ringkasan profil maksimal 300 karakter.',
             '*.date_format' => 'Format bulan/tahun tidak valid.',
             '*.max' => 'Input melebihi batas karakter yang diperbolehkan.',
@@ -134,6 +152,18 @@ class SaveCvProfileRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            foreach ((array) $this->file('documents', []) as $type => $file) {
+                if (!CvDocument::isAllowedType((string) $type)) {
+                    $validator->errors()->add("documents.{$type}", 'Jenis dokumen karyawan tidak valid.');
+                }
+            }
+
+            foreach (array_keys((array) $this->input('remove_documents', [])) as $type) {
+                if (!CvDocument::isAllowedType((string) $type)) {
+                    $validator->errors()->add("remove_documents.{$type}", 'Jenis dokumen yang akan dihapus tidak valid.');
+                }
+            }
+
             foreach ((array) $this->input('emergency_contacts', []) as $index => $contact) {
                 $phone = trim((string) ($contact['phone'] ?? ''));
                 $name = trim((string) ($contact['name'] ?? ''));

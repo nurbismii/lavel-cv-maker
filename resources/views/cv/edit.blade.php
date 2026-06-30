@@ -111,6 +111,8 @@ return strcasecmp($option['name'], (string) $selectedPosition) === 0;
 $selectedDivisionIsCustom = $selectedDivision && !$selectedDivisionInOptions;
 $selectedPositionIsCustom = $selectedPosition && !$selectedPositionInOptions;
 $selectedGender = old('gender', $profile->gender);
+$bloodTypeOptions = \App\Models\CvProfile::BLOOD_TYPES;
+$selectedBloodType = old('blood_type', $profile->blood_type);
 $religionOptions = \App\Models\CvProfile::RELIGIONS;
 $selectedReligion = old('religion', \App\Models\CvProfile::normalizeReligion($profile->religion));
 $hasOldInput = session()->hasOldInput();
@@ -137,6 +139,8 @@ $currentJobExperience = [
 'start_month' => $profile->current_job_entry_date ? $profile->current_job_entry_date->format('Y-m') : '',
 ];
 $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($profile->updated_at)->timestamp : null;
+$documentOptions = \App\Models\CvDocument::documentOptions();
+$documentsByType = $profile->documents->keyBy('type');
 @endphp
 
 @section('content')
@@ -186,7 +190,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                     <i class="bi bi-question-circle me-1"></i> Panduan
                                 </button>
                                 <span class="badge badge-vpeople cv-wizard-counter">
-                                    Step <span data-wizard-current>1</span> dari <span data-wizard-total>7</span>
+                                    Step <span data-wizard-current>1</span> dari <span data-wizard-total>8</span>
                                 </span>
                             </div>
                         </div>
@@ -243,6 +247,13 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Tambahan</span>
                                     <span class="cv-wizard-step-subtitle">Bahasa & proyek</span>
+                                </span>
+                            </button>
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="documents">
+                                <span class="cv-wizard-step-number">8</span>
+                                <span class="cv-wizard-step-text">
+                                    <span class="cv-wizard-step-title">Dokumen</span>
+                                    <span class="cv-wizard-step-subtitle">File karyawan</span>
                                 </span>
                             </button>
                         </div>
@@ -339,6 +350,33 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                             </select>
                                             @error('gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Golongan Darah</label>
+                                            <select name="blood_type" class="form-select @error('blood_type') is-invalid @enderror">
+                                                <option value="">Pilih golongan darah</option>
+                                                @foreach ($bloodTypeOptions as $bloodType)
+                                                <option value="{{ $bloodType }}" {{ $selectedBloodType === $bloodType ? 'selected' : '' }}>{{ $bloodType }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('blood_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tinggi Badan</label>
+                                            <div class="input-group">
+                                                <input type="number" name="height_cm" min="50" max="250" step="1" inputmode="numeric" class="form-control @error('height_cm') is-invalid @enderror" value="{{ old('height_cm', $profile->height_cm) }}" placeholder="Contoh: 170">
+                                                <span class="input-group-text">cm</span>
+                                                @error('height_cm') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Berat Badan</label>
+                                            <div class="input-group">
+                                                <input type="number" name="weight_kg" min="20" max="300" step="0.1" inputmode="decimal" class="form-control @error('weight_kg') is-invalid @enderror" value="{{ old('weight_kg', $profile->weight_kg) }}" placeholder="Contoh: 65.5">
+                                                <span class="input-group-text">kg</span>
+                                                @error('weight_kg') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
+                                        
                                         <div class="col-md-6">
                                             <label class="form-label">Agama</label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
@@ -634,7 +672,7 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-start">
                         <div>
                             <h2 class="app-card-title h5">Ringkasan Profil</h2>
-                            <p class="app-card-subtitle">Maksimal 300 karakter. Generate setelah data utama diisi agar hasilnya lebih relevan.</p>
+                            <p class="app-card-subtitle">Ceritakan singkat tentang diri Anda dan pengalaman profesional Anda serta ketertarikan Anda. Maksimal 300 karakter.</p>
                         </div>
                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan..." data-bs-toggle="tooltip" data-bs-title="Buat ringkasan profil otomatis dari data yang sudah Anda isi.">
                             <i class="bi bi-stars me-1"></i> Generate
@@ -778,6 +816,83 @@ $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($pr
                                 <i class="bi bi-plus-lg me-1"></i> Tambah Organisasi
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="documents" data-wizard-title="Dokumen Karyawan">
+                <div class="app-card-header">
+                    <h2 class="app-card-title h5">Dokumen Karyawan</h2>
+                    <p class="app-card-subtitle">File administrasi HR disimpan privat dan tidak tampil di PDF CV.</p>
+                </div>
+                <div class="app-card-body">
+                    <div class="alert alert-warning app-alert mb-4">
+                        <strong>Perhatian data sensitif.</strong>
+                        <div>Pastikan file KTP, KK, dan ijazah terbaca jelas. Format yang diterima PDF, JPG, JPEG, atau PNG maksimal 5MB per file.</div>
+                    </div>
+
+                    <div class="cv-document-grid">
+                        @foreach ($documentOptions as $documentType => $documentOption)
+                        @php
+                        $document = $documentsByType->get($documentType);
+                        $documentErrorKey = 'documents.' . $documentType;
+                        $removeDocumentId = 'remove_document_' . $documentType;
+                        $documentSize = $document && $document->file_size ? number_format($document->file_size / 1024, 0) . ' KB' : null;
+                        @endphp
+                        <section class="cv-document-card {{ $document ? 'has-document' : '' }}">
+                            <div class="cv-document-card-header">
+                                <div class="cv-document-icon">
+                                    <i class="bi bi-file-earmark-lock"></i>
+                                </div>
+                                <div>
+                                    <h3>{{ $documentOption['label'] }}</h3>
+                                    <div class="cv-document-meta">
+                                        <span class="badge {{ $documentOption['required'] ? 'bg-danger' : 'bg-secondary' }}">
+                                            {{ $documentOption['required'] ? 'Wajib HR' : 'Opsional' }}
+                                        </span>
+                                        <span class="badge {{ $document ? 'bg-success' : 'bg-light text-muted border' }}">
+                                            {{ $document ? 'Sudah upload' : 'Belum upload' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="cv-document-description">{{ $documentOption['description'] }}</p>
+
+                            @if ($document)
+                            <div class="cv-document-current">
+                                <div class="cv-document-file-name">{{ $document->original_name }}</div>
+                                <div class="cv-document-file-meta">
+                                    {{ $documentSize ?: 'Ukuran tidak tersedia' }}
+                                    @if ($document->uploaded_at)
+                                    <span>&middot;</span> Upload {{ $document->uploaded_at->format('d M Y H:i') }}
+                                    @endif
+                                </div>
+                                <a href="{{ route('cv.documents.download', $document) }}" class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="bi bi-download me-1"></i> Download
+                                </a>
+                            </div>
+                            @endif
+
+                            <div class="mt-3">
+                                <label class="form-label" for="document_{{ $documentType }}">
+                                    {{ $document ? 'Ganti file' : 'Upload file' }}
+                                </label>
+                                <input id="document_{{ $documentType }}" type="file" name="documents[{{ $documentType }}]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="form-control @error($documentErrorKey) is-invalid @enderror">
+                                <small class="text-muted d-block mt-1">Upload file baru akan mengganti file lama untuk kategori ini.</small>
+                                @error($documentErrorKey) <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                            </div>
+
+                            @if ($document)
+                            <div class="form-check cv-document-remove mt-3">
+                                <input class="form-check-input" type="checkbox" name="remove_documents[{{ $documentType }}]" value="1" id="{{ $removeDocumentId }}" {{ old('remove_documents.' . $documentType) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="{{ $removeDocumentId }}">
+                                    Hapus file ini saat menyimpan draft
+                                </label>
+                            </div>
+                            @endif
+                        </section>
+                        @endforeach
                     </div>
                 </div>
             </div>

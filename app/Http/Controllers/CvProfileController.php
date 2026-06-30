@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SaveCvProfileRequest;
 use App\Models\CvCertification;
+use App\Models\CvDocument;
 use App\Models\CvEducation;
 use App\Models\CvEmergencyContact;
 use App\Models\CvExperience;
@@ -40,6 +41,7 @@ class CvProfileController extends Controller
             'experiences',
             'educations',
             'emergencyContacts',
+            'documents',
             'certifications',
             'languages',
             'projects',
@@ -186,9 +188,12 @@ class CvProfileController extends Controller
     {
         $locationSelection = $this->resolveLocationSelection($request, $locationService);
         [$photoPath, $oldPhotoPath, $newPhotoPath] = $this->preparePhotoUpdate($request, $profile);
+        $documentUploads = $this->prepareDocumentUploads($request, $profile);
+        $newDocumentPaths = array_column($documentUploads, 'file_path');
+        $oldDocumentPaths = [];
 
         try {
-            DB::transaction(function () use ($request, $profile, $locationSelection, $photoPath) {
+            DB::transaction(function () use ($request, $profile, $locationSelection, $photoPath, $documentUploads, &$oldDocumentPaths) {
                 $requiresFamilyDetails = $this->requiresFamilyDetails($request->input('marital_status'));
                 $hasChildren = $requiresFamilyDetails && $request->boolean('has_children');
 
@@ -201,6 +206,9 @@ class CvProfileController extends Controller
                     'family_card_number' => $this->digitsOnly($request->input('family_card_number')),
                     'birth_place' => $request->input('birth_place'),
                     'gender' => $request->input('gender'),
+                    'height_cm' => $request->filled('height_cm') ? (int) $request->input('height_cm') : null,
+                    'weight_kg' => $request->filled('weight_kg') ? round((float) $request->input('weight_kg'), 2) : null,
+                    'blood_type' => $request->input('blood_type') ?: null,
                     'religion' => CvProfile::normalizeReligion($request->input('religion')),
                     'marital_status' => $request->input('marital_status'),
                     'marriage_date' => $requiresFamilyDetails && $request->filled('marriage_date')
@@ -231,10 +239,15 @@ class CvProfileController extends Controller
                 $this->syncLanguages($profile, $request->input('languages', []));
                 $this->syncProjects($profile, $request->input('projects', []));
                 $this->syncOrganizations($profile, $request->input('organizations', []));
+                $oldDocumentPaths = $this->syncDocuments($request, $profile, $documentUploads);
             });
         } catch (\Throwable $exception) {
             if ($newPhotoPath) {
                 Storage::disk('local')->delete($newPhotoPath);
+            }
+
+            foreach ($newDocumentPaths as $path) {
+                Storage::disk('local')->delete($path);
             }
 
             throw $exception;
@@ -242,6 +255,10 @@ class CvProfileController extends Controller
 
         if ($oldPhotoPath && $oldPhotoPath !== $photoPath) {
             Storage::disk('local')->delete($oldPhotoPath);
+        }
+
+        foreach ($oldDocumentPaths as $path) {
+            Storage::disk('local')->delete($path);
         }
     }
 
@@ -263,6 +280,29 @@ class CvProfileController extends Controller
         }
 
         return [$photoPath, $oldPhotoPath, $newPhotoPath];
+    }
+
+    private function prepareDocumentUploads(SaveCvProfileRequest $request, CvProfile $profile): array
+    {
+        $uploads = [];
+
+        foreach ((array) $request->file('documents', []) as $type => $file) {
+            $type = (string) $type;
+
+            if (!$file || !$file->isValid() || !CvDocument::isAllowedType($type)) {
+                continue;
+            }
+
+            $uploads[$type] = [
+                'type' => $type,
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $file->store('cv-documents/' . $profile->user_id, 'local'),
+                'mime_type' => $file->getClientMimeType(),
+                'file_size' => $file->getSize(),
+            ];
+        }
+
+        return $uploads;
     }
 
     private function locationOptions(
@@ -547,6 +587,39 @@ class CvProfileController extends Controller
                 'sort_order' => $sortOrder++,
             ]);
         }
+    }
+
+    private function syncDocuments(SaveCvProfileRequest $request, CvProfile $profile, array $uploads): array
+    {
+        $pathsToDelete = [];
+        $removeDocuments = (array) $request->input('remove_documents', []);
+
+        foreach (CvDocument::allowedTypes() as $type) {
+            $existing = $profile->documents()->where('type', $type)->first();
+
+            if (isset($uploads[$type])) {
+                if ($existing) {
+                    $pathsToDelete[] = $existing->file_path;
+                    $existing->update(array_merge($uploads[$type], [
+                        'uploaded_at' => now(),
+                    ]));
+                } else {
+                    CvDocument::create(array_merge($uploads[$type], [
+                        'cv_profile_id' => $profile->id,
+                        'uploaded_at' => now(),
+                    ]));
+                }
+
+                continue;
+            }
+
+            if (!empty($removeDocuments[$type]) && $existing) {
+                $pathsToDelete[] = $existing->file_path;
+                $existing->delete();
+            }
+        }
+
+        return array_values(array_unique(array_filter($pathsToDelete)));
     }
 
     private function completion(CvProfile $profile): int

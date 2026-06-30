@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\CvLocationController;
+use App\Http\Controllers\CvDocumentController;
 use App\Http\Controllers\CvOrganizationController;
 use App\Http\Controllers\CvPdfController;
 use App\Http\Controllers\CvPhotoController;
@@ -52,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cv/preview', [CvPreviewController::class, 'show'])->name('cv.preview');
     Route::get('/cv/download-pdf', [CvPdfController::class, 'download'])->name('cv.pdf.download');
     Route::get('/cv/photo', [CvPhotoController::class, 'show'])->name('cv.photo.show');
+    Route::get('/cv/documents/{document}/download', [CvDocumentController::class, 'download'])->name('cv.documents.download');
     Route::get('/cv/locations/provinces', [CvLocationController::class, 'provinces'])->name('cv.locations.provinces');
     Route::get('/cv/locations/regencies', [CvLocationController::class, 'regencies'])->name('cv.locations.regencies');
     Route::get('/cv/locations/districts', [CvLocationController::class, 'districts'])->name('cv.locations.districts');
