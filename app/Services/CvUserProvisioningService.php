@@ -38,6 +38,8 @@ class CvUserProvisioningService
             'marital_status' => $employee['marital_status'],
             'spouse_name' => $employee['spouse_name'],
             'mother_name' => $employee['mother_name'],
+            'ktp_address' => $employee['ktp_address'] ?? null,
+            'domicile_same_as_ktp' => $employee['domicile_same_as_ktp'] ?? false,
             'address' => $employee['address'],
             'phone' => $employee['phone'],
             'email' => $email,

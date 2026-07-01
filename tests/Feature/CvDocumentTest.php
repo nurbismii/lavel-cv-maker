@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CvProfile;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
@@ -122,7 +123,7 @@ class CvDocumentTest extends TestCase
         $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
             'height_cm' => '172',
             'weight_kg' => '68.5',
-            'blood_type' => 'O',
+            'blood_type' => CvProfile::BLOOD_TYPES[3],
         ]));
 
         $response->assertRedirect(route('cv.edit'));
@@ -131,7 +132,47 @@ class CvDocumentTest extends TestCase
             'user_id' => $user->id,
             'height_cm' => 172,
             'weight_kg' => 68.5,
-            'blood_type' => 'O',
+            'blood_type' => CvProfile::BLOOD_TYPES[3],
+        ]);
+    }
+
+    public function test_employee_can_use_ktp_address_as_domicile_address()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'ktp_address' => 'Jl. KTP No. 10',
+            'domicile_same_as_ktp' => '1',
+            'address' => '',
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $this->assertDatabaseHas('cv_profiles', [
+            'user_id' => $user->id,
+            'ktp_address' => 'Jl. KTP No. 10',
+            'domicile_same_as_ktp' => 1,
+            'address' => 'Jl. KTP No. 10',
+        ]);
+    }
+
+    public function test_employee_can_save_different_domicile_address()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'ktp_address' => 'Jl. KTP No. 10',
+            'domicile_same_as_ktp' => '0',
+            'address' => 'Jl. Domisili No. 22',
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $this->assertDatabaseHas('cv_profiles', [
+            'user_id' => $user->id,
+            'ktp_address' => 'Jl. KTP No. 10',
+            'domicile_same_as_ktp' => 0,
+            'address' => 'Jl. Domisili No. 22',
         ]);
     }
 
@@ -207,6 +248,8 @@ class CvDocumentTest extends TestCase
             $table->string('district_name')->nullable();
             $table->string('village_id', 32)->nullable();
             $table->string('village_name')->nullable();
+            $table->text('ktp_address')->nullable();
+            $table->boolean('domicile_same_as_ktp')->default(false);
             $table->text('address')->nullable();
             $table->string('phone', 64)->nullable();
             $table->string('email')->nullable();

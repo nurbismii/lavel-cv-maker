@@ -124,6 +124,10 @@ $hasChildren = $hasOldInput ? (bool) old('has_children') : (bool) $profile->has_
 $childrenNames = $hasOldInput ? old('children_names', []) : ($profile->children_names ?: []);
 $childrenNames = is_array($childrenNames) ? array_values($childrenNames) : [];
 $childrenNames = array_pad(array_slice($childrenNames, 0, 3), 3, '');
+$ktpAddressValue = old('ktp_address', $profile->ktp_address);
+$domicileSameAsKtp = $hasOldInput ? (bool) old('domicile_same_as_ktp') : (bool) $profile->domicile_same_as_ktp;
+$domicileAddressValue = old('address', $profile->address);
+$domicileAddressValue = $domicileSameAsKtp && $ktpAddressValue ? $ktpAddressValue : $domicileAddressValue;
 
 if (!in_array($selectedGender, ['L', 'P'])) {
 $genderText = strtolower((string) $selectedGender);
@@ -141,6 +145,18 @@ $currentJobExperience = [
 $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($profile->updated_at)->timestamp : null;
 $documentOptions = \App\Models\CvDocument::documentOptions();
 $documentsByType = $profile->documents->keyBy('type');
+$completionItems = collect([
+['label' => 'Tempat lahir', 'done' => (bool) $profile->birth_place],
+['label' => 'Ringkasan profil', 'done' => (bool) $profile->profile_summary],
+['label' => 'Keahlian teknis', 'done' => count($profile->technical_skills ?: []) > 0],
+['label' => 'Pengalaman kerja', 'done' => $profile->experiences->isNotEmpty()],
+['label' => 'Pendidikan', 'done' => $profile->educations->isNotEmpty()],
+]);
+$missingCompletionItems = $completionItems->reject(function ($item) {
+return $item['done'];
+})->values();
+$visibleMissingCompletionItems = $missingCompletionItems->take(3);
+$hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visibleMissingCompletionItems->count());
 @endphp
 
 @section('content')
@@ -173,8 +189,8 @@ $documentsByType = $profile->documents->keyBy('type');
 @endif
 
 <div class="row g-4 align-items-start">
-    <div class="col-lg-8">
-        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" data-current-job-position="{{ $currentJobExperience['position'] }}" data-current-job-company="{{ $currentJobExperience['company'] }}" data-current-job-department="{{ $currentJobExperience['department'] }}" data-current-job-division="{{ $currentJobExperience['division'] }}" data-current-job-start-month="{{ $currentJobExperience['start_month'] }}" novalidate>
+    <div class="col-lg-7">
+        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" data-current-job-position="{{ $currentJobExperience['position'] }}" data-current-job-company="{{ $currentJobExperience['company'] }}" data-current-job-department="{{ $currentJobExperience['department'] }}" data-current-job-division="{{ $currentJobExperience['division'] }}" data-current-job-start-month="{{ $currentJobExperience['start_month'] }}" data-live-preview-nik="{{ $vpeopleNik ?: '' }}" novalidate>
             @csrf
 
             <div class="cv-wizard" data-cv-wizard data-initial-step="{{ request('step') }}">
@@ -186,6 +202,9 @@ $documentsByType = $profile->documents->keyBy('type');
                                 <p class="text-muted mb-0">Isi bertahap agar data CV lebih mudah dicek sebelum disimpan.</p>
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center justify-content-md-end">
+                                <button type="button" class="btn btn-primary btn-sm" data-live-preview-toggle aria-expanded="true" aria-controls="cvLivePreviewPanel" data-bs-toggle="tooltip" data-bs-title="Sembunyikan preview CV dari isi form saat ini.">
+                                    <i class="bi bi-layout-sidebar-inset-reverse me-1"></i> <span data-live-preview-toggle-text>Sembunyikan Preview</span>
+                                </button>
                                 <button type="button" class="btn btn-outline-primary btn-sm" data-guide-start data-bs-toggle="tooltip" data-bs-title="Lihat panduan singkat penggunaan form CV.">
                                     <i class="bi bi-question-circle me-1"></i> Panduan
                                 </button>
@@ -280,7 +299,7 @@ $documentsByType = $profile->documents->keyBy('type');
                                     </div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                                            <label class="form-label cv-required-label">Nama Lengkap <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <input type="text" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $profile->full_name) }}" placeholder="Nama lengkap sesuai identitas">
                                             @error('full_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -331,18 +350,18 @@ $documentsByType = $profile->documents->keyBy('type');
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
+                                            <label class="form-label cv-required-label">Tempat Lahir <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <input type="text" name="birth_place" class="form-control @error('birth_place') is-invalid @enderror" value="{{ old('birth_place', $profile->birth_place) }}" placeholder="Contoh: Kendari">
                                             @error('birth_place') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
+                                            <label class="form-label cv-required-label">Tanggal Lahir <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <input type="date" name="birth_date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', optional($profile->birth_date)->format('Y-m-d')) }}">
                                             @error('birth_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Jenis Kelamin</label>
+                                            <label class="form-label cv-required-label">Jenis Kelamin <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <select name="gender" class="form-select @error('gender') is-invalid @enderror">
                                                 <option value="">Pilih jenis kelamin</option>
                                                 <option value="L" {{ $selectedGender === 'L' ? 'selected' : '' }}>Laki-Laki</option>
@@ -395,7 +414,7 @@ $documentsByType = $profile->documents->keyBy('type');
                                             @error('mother_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Status Pernikahan</label>
+                                            <label class="form-label cv-required-label">Status Pernikahan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <select name="marital_status" class="form-select @error('marital_status') is-invalid @enderror" data-family-status>
                                                 @foreach ($maritalStatusOptions as $status)
                                                 <option value="{{ $status }}" {{ $selectedMaritalStatus === $status ? 'selected' : '' }}>{{ $status }}</option>
@@ -479,12 +498,12 @@ $documentsByType = $profile->documents->keyBy('type');
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label">No. HP</label>
+                                        <label class="form-label cv-required-label">No. HP <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $profile->phone) }}" placeholder="08xxxxxxxxxx">
                                         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                                        <label class="form-label cv-required-label">Email <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <input type="email" name="email" class="form-control readonly-field @error('email') is-invalid @enderror" value="{{ old('email', $profile->email) }}" readonly>
                                         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
@@ -521,11 +540,32 @@ $documentsByType = $profile->documents->keyBy('type');
                                         <i class="bi bi-geo-alt"></i>
                                     </div>
                                     <div>
-                                        <h3>Alamat Domisili</h3>
-                                        <p>Wilayah dan alamat lengkap karyawan.</p>
+                                        <h3>Alamat</h3>
+                                        <p>Alamat sesuai KTP dan alamat domisili karyawan.</p>
                                     </div>
                                 </div>
                                 <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Alamat Sesuai KTP</label>
+                                        <span class="badge badge-vpeople ms-1">V-People</span>
+                                        <textarea name="ktp_address" rows="3" class="form-control @error('ktp_address') is-invalid @enderror" placeholder="Alamat lengkap sesuai KTP" data-ktp-address>{{ $ktpAddressValue }}</textarea>
+                                        <div class="form-text">Isi alamat sesuai KTP. Jika sama dengan domisili, aktifkan toggle di bawah.</div>
+                                        @error('ktp_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="cv-family-toggle">
+                                            <div>
+                                                <span class="cv-family-toggle-title">Alamat domisili sama dengan alamat KTP</span>
+                                                <span class="cv-family-toggle-subtitle">Aktifkan jika anda tinggal di alamat yang sama dengan KTP.</span>
+                                            </div>
+                                            <div class="form-check form-switch m-0">
+                                                <input type="hidden" name="domicile_same_as_ktp" value="0">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="domicileSameAsKtp" name="domicile_same_as_ktp" value="1" data-domicile-same-toggle {{ $domicileSameAsKtp ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold" for="domicileSameAsKtp">Sama</label>
+                                            </div>
+                                        </div>
+                                        @error('domicile_same_as_ktp') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                    </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Provinsi</label>
                                         <select id="provinceSelect" name="province_id" class="form-select @error('province_id') is-invalid @enderror" data-location-child="#regencySelect">
@@ -574,9 +614,10 @@ $documentsByType = $profile->documents->keyBy('type');
                                         </select>
                                         @error('village_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Alamat Lengkap</label>
-                                        <textarea name="address" rows="3" class="form-control @error('address') is-invalid @enderror" placeholder="Alamat domisili lengkap">{{ old('address', $profile->address) }}</textarea>
+                                    <div class="col-12" data-domicile-address-panel>
+                                        <label class="form-label cv-required-label">Alamat Domisili Lengkap <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
+                                        <textarea name="address" rows="3" class="form-control @error('address') is-invalid @enderror" placeholder="Alamat domisili lengkap" data-domicile-address>{{ $domicileAddressValue }}</textarea>
+                                        <div class="form-text">Jika tidak sama dengan alamat KTP, isi alamat tempat tinggal saat ini.</div>
                                         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
@@ -674,13 +715,16 @@ $documentsByType = $profile->documents->keyBy('type');
                             <h2 class="app-card-title h5">Ringkasan Profil</h2>
                             <p class="app-card-subtitle">Ceritakan singkat tentang diri Anda dan pengalaman profesional Anda serta ketertarikan Anda. Maksimal 300 karakter.</p>
                         </div>
-                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-loading-text="Membuat ringkasan..." data-bs-toggle="tooltip" data-bs-title="Buat ringkasan profil otomatis dari data yang sudah Anda isi.">
+                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="{{ route('cv.summary.generate') }}" data-wizard-submit-skip-validation data-loading-text="Membuat ringkasan..." data-bs-toggle="tooltip" data-bs-title="Buat ringkasan profil otomatis dari data yang sudah Anda isi.">
                             <i class="bi bi-stars me-1"></i> Generate
                         </button>
                     </div>
                 </div>
                 <div class="app-card-body">
-                    <textarea name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
+                    <label class="form-label cv-required-label" for="profile_summary">
+                        Ringkasan Profil <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span>
+                    </label>
+                    <textarea id="profile_summary" name="profile_summary" rows="4" maxlength="300" class="form-control @error('profile_summary') is-invalid @enderror js-countable" data-counter="#summaryCounter" placeholder="Contoh: Teknisi mekanik dengan pengalaman 5 tahun di industri smelter nikel...">{{ old('profile_summary', $profile->profile_summary) }}</textarea>
                     <div class="d-flex justify-content-between mt-2">
                         <small class="text-muted">Tulis ringkas, spesifik, dan profesional.</small>
                         <small class="text-muted"><span id="summaryCounter">0</span>/300</small>
@@ -735,7 +779,7 @@ $documentsByType = $profile->documents->keyBy('type');
                 </div>
                 <div class="app-card-body">
                     <div class="mb-3">
-                        <label class="form-label">Keahlian Teknis</label>
+                        <label class="form-label cv-required-label">Keahlian Teknis <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                         <textarea name="technical_skills" rows="3" class="form-control @error('technical_skills') is-invalid @enderror" placeholder="Welding, SAP, Microsoft Excel, AutoCAD">{{ $skillText }}</textarea>
                         @error('technical_skills') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
@@ -839,7 +883,7 @@ $documentsByType = $profile->documents->keyBy('type');
                         $removeDocumentId = 'remove_document_' . $documentType;
                         $documentSize = $document && $document->file_size ? number_format($document->file_size / 1024, 0) . ' KB' : null;
                         @endphp
-                        <section class="cv-document-card {{ $document ? 'has-document' : '' }}">
+                        <section class="cv-document-card {{ $document ? 'has-document' : '' }}" data-document-required="{{ $documentOption['required'] ? '1' : '0' }}" data-document-has-file="{{ $document ? '1' : '0' }}" data-document-label="{{ $documentOption['label'] }}">
                             <div class="cv-document-card-header">
                                 <div class="cv-document-icon">
                                     <i class="bi bi-file-earmark-lock"></i>
@@ -877,6 +921,9 @@ $documentsByType = $profile->documents->keyBy('type');
                             <div class="mt-3">
                                 <label class="form-label" for="document_{{ $documentType }}">
                                     {{ $document ? 'Ganti file' : 'Upload file' }}
+                                    @if ($documentOption['required'])
+                                    <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span>
+                                    @endif
                                 </label>
                                 <input id="document_{{ $documentType }}" type="file" name="documents[{{ $documentType }}]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="form-control @error($documentErrorKey) is-invalid @enderror">
                                 <small class="text-muted d-block mt-1">Upload file baru akan mengganti file lama untuk kategori ini.</small>
@@ -910,10 +957,10 @@ $documentsByType = $profile->documents->keyBy('type');
             <button type="button" class="btn btn-primary" data-wizard-next data-guide-target="wizard-next" data-bs-toggle="tooltip" data-bs-title="Lanjut ke step berikutnya setelah step saat ini lengkap.">
                 Berikutnya <i class="bi bi-chevron-right ms-1"></i>
             </button>
-            <button type="submit" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
+            <button type="submit" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-wizard-submit-skip-documents data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
                 <i class="bi bi-eye me-1"></i> Simpan & Preview
             </button>
-            <button type="submit" class="btn btn-primary" data-loading-text="Menyimpan draft..." data-guide-target="save-draft" data-bs-toggle="tooltip" data-bs-title="Simpan perubahan sebagai draft tanpa harus menyelesaikan semua data.">
+            <button type="submit" class="btn btn-primary" data-wizard-submit-skip-validation data-loading-text="Menyimpan draft..." data-guide-target="save-draft" data-bs-toggle="tooltip" data-bs-title="Simpan perubahan sebagai draft tanpa harus menyelesaikan semua data.">
                 <i class="bi bi-save me-1"></i> Simpan Draft
             </button>
         </div>
@@ -921,40 +968,60 @@ $documentsByType = $profile->documents->keyBy('type');
     </form>
 </div>
 
-<div class="col-lg-4">
+<div class="col-lg-5">
     <div class="app-card sticky-lg-top cv-side-panel">
         <div class="app-card-body">
-            <h2 class="h5 fw-bold mb-2">Kelengkapan CV</h2>
-            <p class="text-muted">Progress dihitung dari field utama yang diperlukan sebelum generate PDF.</p>
-            <div class="progress cv-progress mb-3">
-                <div class="progress-bar" role="progressbar" style="width: {{ $completion }}%;" aria-valuenow="{{ $completion }}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <div class="d-flex justify-content-between mb-4">
-                <span class="text-muted">Progress</span>
-                <strong>{{ $completion }}%</strong>
-            </div>
-
-            <div class="cv-checklist">
-                <div class="cv-check {{ $profile->birth_place ? 'is-done' : '' }}"><i class="bi bi-check-circle"></i> Tempat lahir</div>
-                <div class="cv-check {{ $profile->profile_summary ? 'is-done' : '' }}"><i class="bi bi-check-circle"></i> Ringkasan profil</div>
-                <div class="cv-check {{ count($profile->technical_skills ?: []) ? 'is-done' : '' }}"><i class="bi bi-check-circle"></i> Keahlian teknis</div>
-                <div class="cv-check {{ $profile->experiences()->exists() ? 'is-done' : '' }}"><i class="bi bi-check-circle"></i> Pengalaman kerja</div>
-                <div class="cv-check {{ $profile->educations()->exists() ? 'is-done' : '' }}"><i class="bi bi-check-circle"></i> Pendidikan</div>
-            </div>
-
-            <div class="alert alert-warning mt-4 mb-0">
-                <strong>Preview dan PDF</strong>
-                <div>PDF hanya bisa dibuat setelah field wajib lengkap.</div>
+            <div class="cv-completion-summary">
+                <div class="cv-completion-summary-header">
+                    <div>
+                        <h2 class="h6 fw-bold mb-1">Kelengkapan CV</h2>
+                        <p class="text-muted mb-0">PDF siap setelah data utama lengkap.</p>
+                    </div>
+                    <strong class="cv-completion-percent">{{ $completion }}%</strong>
+                </div>
+                <div class="progress cv-progress cv-progress--compact">
+                    <div class="progress-bar" role="progressbar" style="width: {{ $completion }}%;" aria-valuenow="{{ $completion }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                @if ($missingCompletionItems->isEmpty())
+                <div class="cv-completion-ready">
+                    <i class="bi bi-check-circle"></i> Data utama lengkap untuk PDF.
+                </div>
+                @else
+                <div class="cv-completion-missing" aria-label="Data utama yang belum lengkap">
+                    @foreach ($visibleMissingCompletionItems as $item)
+                    <span class="cv-completion-pill"><i class="bi bi-circle"></i>{{ $item['label'] }}</span>
+                    @endforeach
+                    @if ($hiddenMissingCompletionCount > 0)
+                    <span class="cv-completion-pill cv-completion-pill--muted">+{{ $hiddenMissingCompletionCount }} lagi</span>
+                    @endif
+                </div>
+                @endif
             </div>
 
             <div class="d-grid gap-2 mt-3">
-                <button type="submit" form="cvForm" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
+                <button type="submit" form="cvForm" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-wizard-submit-skip-documents data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
                     <i class="bi bi-eye me-1"></i> Simpan & Preview
                 </button>
                 <a href="{{ route('cv.pdf.download') }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Unduh PDF setelah data wajib CV lengkap.">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
                 </a>
             </div>
+
+            <section class="cv-live-preview-panel mt-4" id="cvLivePreviewPanel" data-live-preview-panel>
+                <div class="cv-live-preview-header">
+                    <div>
+                        <h2 class="h6 fw-bold mb-1">Live Preview CV</h2>
+                        <p class="text-muted mb-0">Belum tersimpan ke draft.</p>
+                    </div>
+                    <span class="badge badge-vpeople" data-live-preview-status>Aktif</span>
+                </div>
+                <div class="cv-live-preview-shell">
+                    <div class="cv-live-preview-empty" data-live-preview-empty>
+                        Preview belum tersedia.
+                    </div>
+                    <div data-live-preview-output></div>
+                </div>
+            </section>
         </div>
     </div>
 </div>

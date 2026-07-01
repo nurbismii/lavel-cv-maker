@@ -20,27 +20,27 @@
             </div>
         </div>
         <div class="col-md-6">
-            <label class="form-label">Nama Posisi/Jabatan</label>
+            <label class="form-label cv-required-label">Nama Posisi/Jabatan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="experiences[{{ $index }}][position]" class="form-control" value="{{ $item['position'] ?? '' }}" placeholder="Mechanical Technician">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Nama Perusahaan</label>
+            <label class="form-label cv-required-label">Nama Perusahaan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="experiences[{{ $index }}][company]" class="form-control" value="{{ $item['company'] ?? '' }}" placeholder="PT VDNI">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Departemen</label>
+            <label class="form-label cv-required-label">Departemen <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="experiences[{{ $index }}][department]" class="form-control" value="{{ $item['department'] ?? '' }}" placeholder="{{ $departmentPlaceholder }}">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Divisi</label>
+            <label class="form-label cv-required-label">Divisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="experiences[{{ $index }}][division]" class="form-control" value="{{ $item['division'] ?? '' }}" placeholder="{{ $divisionPlaceholder }}">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Mulai</label>
+            <label class="form-label cv-required-label">Mulai <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="month" name="experiences[{{ $index }}][start_month]" class="form-control" value="{{ $item['start_month'] ?? '' }}">
         </div>
         <div class="col-md-6">
-            <label class="form-label">Selesai</label>
+            <label class="form-label cv-required-label">Selesai <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="month" name="experiences[{{ $index }}][end_month]" class="form-control" value="{{ $item['end_month'] ?? '' }}" data-current-target>
         </div>
         <div class="col-12">
@@ -50,7 +50,7 @@
             </div>
         </div>
         <div class="col-12">
-            <label class="form-label">Job Description</label>
+            <label class="form-label cv-required-label">Job Description <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             @php
                 $responsibilitiesText = \App\Support\CvResponsibilityRichText::toTextareaText($item['responsibilities'] ?? null);
             @endphp

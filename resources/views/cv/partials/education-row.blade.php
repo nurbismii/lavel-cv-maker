@@ -13,7 +13,7 @@
 
     <div class="row g-3">
         <div class="col-md-3">
-            <label class="form-label">Jenjang</label>
+            <label class="form-label cv-required-label">Jenjang <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <select name="educations[{{ $index }}][level]" class="form-select">
                 <option value="">Pilih</option>
                 @foreach ($educationLevels as $level)
@@ -25,15 +25,15 @@
             </select>
         </div>
         <div class="col-md-4">
-            <label class="form-label">Nama Institusi</label>
+            <label class="form-label cv-required-label">Nama Institusi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="educations[{{ $index }}][institution]" class="form-control" value="{{ $item['institution'] ?? '' }}" placeholder="Nama sekolah/universitas">
         </div>
         <div class="col-md-3">
-            <label class="form-label">Jurusan</label>
+            <label class="form-label cv-required-label">Jurusan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <input type="text" name="educations[{{ $index }}][major]" class="form-control" value="{{ $item['major'] ?? '' }}" placeholder="Teknik Informatika">
         </div>
         <div class="col-md-2">
-            <label class="form-label">Lulus</label>
+            <label class="form-label cv-required-label">Lulus <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             <select name="educations[{{ $index }}][graduation_year]" class="form-select">
                 <option value="">Pilih tahun</option>
                 @foreach ($yearOptions as $year)

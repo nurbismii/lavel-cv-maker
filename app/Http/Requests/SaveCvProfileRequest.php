@@ -56,6 +56,8 @@ class SaveCvProfileRequest extends FormRequest
             'regency_id' => ['nullable', 'string', 'max:32'],
             'district_id' => ['nullable', 'string', 'max:32'],
             'village_id' => ['nullable', 'string', 'max:32'],
+            'ktp_address' => ['nullable', 'string', 'max:2000'],
+            'domicile_same_as_ktp' => ['nullable', 'boolean'],
             'address' => ['nullable', 'string', 'max:2000'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['required', 'email', 'max:255'],

@@ -7,6 +7,8 @@
     var pendingPhotoApplied = false;
     var previewPhotoObjectUrl = null;
     var activeWizardIndex = 0;
+    var livePreviewEnabled = true;
+    var livePreviewUpdateTimer = null;
     var guideReadTimer = null;
     var guideInitialWizardIndex = null;
     var GUIDE_STORAGE_KEY = 'vitae.cv-form-guide.seen.v5';
@@ -466,6 +468,38 @@
         childrenFields.querySelectorAll('input, textarea, select').forEach(function (field) {
             field.disabled = !showChildren;
         });
+    }
+
+    function syncDomicileAddressFields() {
+        var toggle = document.querySelector('[data-domicile-same-toggle]');
+        var ktpField = document.querySelector('[data-ktp-address]');
+        var domicileField = document.querySelector('[data-domicile-address]');
+        var domicilePanel = document.querySelector('[data-domicile-address-panel]');
+        var hasKtpAddress = ktpField && ktpField.value.trim() !== '';
+        var useKtpAddress;
+
+        if (!toggle || !ktpField || !domicileField) {
+            return;
+        }
+
+        if (!hasKtpAddress) {
+            toggle.checked = false;
+        }
+
+        toggle.disabled = !hasKtpAddress;
+        useKtpAddress = toggle.checked && hasKtpAddress;
+
+        if (useKtpAddress) {
+            domicileField.value = ktpField.value;
+            clearFieldWizardError(domicileField);
+        }
+
+        domicileField.readOnly = useKtpAddress;
+        domicileField.classList.toggle('readonly-field', useKtpAddress);
+
+        if (domicilePanel) {
+            domicilePanel.classList.toggle('is-address-synced', useKtpAddress);
+        }
     }
 
     function applyCurrentToggles(root) {
@@ -1223,6 +1257,22 @@
         });
     }
 
+    function validateRepeatRows(panel, type, fieldRules, options, errors) {
+        var fieldNames = fieldRules.map(function (fieldRule) {
+            return fieldRule.name;
+        });
+
+        repeatRows(panel, type).forEach(function (row) {
+            if (!repeatRowHasValue(row, fieldNames)) {
+                return;
+            }
+
+            fieldRules.forEach(function (fieldRule) {
+                validateRequiredField(row, '[name$="[' + fieldRule.name + ']"]', fieldRule.label, options, errors);
+            });
+        });
+    }
+
     function validateSimpleWizardPanel(panel, options, errors) {
         var rule = WIZARD_VALIDATION_RULES[panel.dataset.wizardPanel];
 
@@ -1307,6 +1357,8 @@
 
             validateRequiredField(row, '[name$="[position]"]', 'Nama posisi/jabatan', options, errors);
             validateRequiredField(row, '[name$="[company]"]', 'Nama perusahaan', options, errors);
+            validateRequiredField(row, '[name$="[department]"]', 'Departemen', options, errors);
+            validateRequiredField(row, '[name$="[division]"]', 'Divisi', options, errors);
             validateRequiredField(row, '[name$="[start_month]"]', 'Bulan mulai', options, errors);
             validateRequiredField(row, '[name$="[responsibilities]"]', 'Job description', options, errors);
 
@@ -1344,6 +1396,47 @@
         });
     }
 
+    function validateExtrasWizardPanel(panel, options, errors) {
+        validateRepeatRows(panel, 'languages', [
+            { name: 'language', label: 'Bahasa' },
+            { name: 'level', label: 'Tingkat bahasa' },
+        ], options, errors);
+
+        validateRepeatRows(panel, 'projects', [
+            { name: 'name', label: 'Nama proyek' },
+            { name: 'year', label: 'Tahun proyek' },
+        ], options, errors);
+
+        validateRepeatRows(panel, 'organizations', [
+            { name: 'organization_name', label: 'Organisasi' },
+            { name: 'role', label: 'Jabatan/peran organisasi' },
+            { name: 'start_year', label: 'Tahun mulai organisasi' },
+            { name: 'end_year', label: 'Tahun selesai organisasi' },
+        ], options, errors);
+    }
+
+    function documentCardHasValidFile(card) {
+        var input = card ? card.querySelector('input[type="file"]') : null;
+        var remove = card ? card.querySelector('input[name^="remove_documents"]') : null;
+        var hasExistingFile = card && card.dataset.documentHasFile === '1';
+        var hasNewFile = input && fieldHasValue(input);
+
+        return hasNewFile || (hasExistingFile && !(remove && remove.checked));
+    }
+
+    function validateDocumentsWizardPanel(panel, options, errors) {
+        panel.querySelectorAll('[data-document-required="1"]').forEach(function (card) {
+            var input = card.querySelector('input[type="file"]');
+            var label = card.dataset.documentLabel || 'Dokumen wajib HR';
+
+            if (documentCardHasValidFile(card)) {
+                return;
+            }
+
+            addWizardFieldError(errors, input, requiredMessage(label), options);
+        });
+    }
+
     function validateWizardPanel(panel, options) {
         var errors = [];
         var panelKey = panel ? panel.dataset.wizardPanel : null;
@@ -1376,6 +1469,14 @@
 
         if (panelKey === 'certifications') {
             validateCertificationsWizardPanel(panel, options || {}, errors);
+        }
+
+        if (panelKey === 'extras') {
+            validateExtrasWizardPanel(panel, options || {}, errors);
+        }
+
+        if (panelKey === 'documents' && !(options || {}).skipDocuments) {
+            validateDocumentsWizardPanel(panel, options || {}, errors);
         }
 
         return {
@@ -1440,7 +1541,7 @@
         }
     }
 
-    function validateWizardPath(elements, targetIndex) {
+    function validateWizardPath(elements, targetIndex, options) {
         var result = null;
         var invalidIndex = -1;
 
@@ -1449,7 +1550,7 @@
                 return true;
             }
 
-            result = validateWizardPanel(panel);
+            result = validateWizardPanel(panel, options || {});
 
             if (!result.valid) {
                 invalidIndex = index;
@@ -1468,6 +1569,33 @@
         notifyWizardValidation(result.panel);
 
         return false;
+    }
+
+    function submitterSkipsWizardValidation(event) {
+        var submitter = event.submitter || document.activeElement;
+
+        return !!(submitter && submitter.hasAttribute && submitter.hasAttribute('data-wizard-submit-skip-validation'));
+    }
+
+    function submitterSkipsDocumentsValidation(event) {
+        var submitter = event.submitter || document.activeElement;
+
+        return !!(submitter && submitter.hasAttribute && submitter.hasAttribute('data-wizard-submit-skip-documents'));
+    }
+
+    function validateWizardSubmit(event) {
+        var elements = wizardElements();
+        var options = submitterSkipsDocumentsValidation(event) ? { skipDocuments: true } : {};
+
+        if (!event.target || event.target.id !== 'cvForm' || submitterSkipsWizardValidation(event) || !elements) {
+            return;
+        }
+
+        if (validateWizardPath(elements, elements.panels.length, options)) {
+            return;
+        }
+
+        event.preventDefault();
     }
 
     function goToWizardStep(index, options) {
@@ -1521,6 +1649,52 @@
         var initialStep = elements.root.dataset.initialStep || '';
 
         return initialStep ? wizardPanelIndexByKey(elements.panels, initialStep) : -1;
+    }
+
+    function scrollActiveWizardStepIntoView(elements, activeKey) {
+        var rail = elements && elements.root ? elements.root.querySelector('.cv-wizard-steps') : null;
+        var activeStep = elements && elements.steps ? elements.steps.find(function (step) {
+            return step.dataset.wizardStepTarget === activeKey;
+        }) : null;
+        var maxScroll = rail ? rail.scrollWidth - rail.clientWidth : 0;
+        var targetLeft;
+        var reducedMotionQuery;
+        var behavior = 'smooth';
+
+        if (!rail || !activeStep || maxScroll <= 0) {
+            return;
+        }
+
+        targetLeft = activeStep.offsetLeft - ((rail.clientWidth - activeStep.offsetWidth) / 2);
+        targetLeft = Math.max(0, Math.min(targetLeft, maxScroll));
+
+        if (window.matchMedia) {
+            reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+            behavior = reducedMotionQuery.matches ? 'auto' : 'smooth';
+        }
+
+        if (typeof rail.scrollTo === 'function') {
+            rail.scrollTo({
+                left: targetLeft,
+                behavior: behavior,
+            });
+            return;
+        }
+
+        rail.scrollLeft = targetLeft;
+    }
+
+    function scheduleActiveWizardStepScroll(elements, activeKey) {
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function () {
+                scrollActiveWizardStepIntoView(elements, activeKey);
+            });
+            return;
+        }
+
+        window.setTimeout(function () {
+            scrollActiveWizardStepIntoView(elements, activeKey);
+        }, 0);
     }
 
     function setWizardStep(index, options) {
@@ -1587,6 +1761,7 @@
 
         markWizardErrors(elements);
         updateWizardAccessState(elements);
+        scheduleActiveWizardStepScroll(elements, activeKey);
 
         if (options && options.scroll) {
             elements.root.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1621,6 +1796,480 @@
         setWizardStep(Math.min(requestedIndex, reachableIndex), {
             scroll: errorIndex > -1,
         });
+    }
+
+    function livePreviewElements() {
+        return {
+            form: document.getElementById('cvForm'),
+            toggle: document.querySelector('[data-live-preview-toggle]'),
+            toggleText: document.querySelector('[data-live-preview-toggle-text]'),
+            panel: document.querySelector('[data-live-preview-panel]'),
+            output: document.querySelector('[data-live-preview-output]'),
+            empty: document.querySelector('[data-live-preview-empty]'),
+            status: document.querySelector('[data-live-preview-status]'),
+        };
+    }
+
+    function initLivePreview() {
+        var elements = livePreviewElements();
+
+        if (!elements.toggle || !elements.panel || !elements.output) {
+            return;
+        }
+
+        livePreviewEnabled = true;
+        syncLivePreviewState(elements);
+        updateLivePreview();
+    }
+
+    function syncLivePreviewState(elements) {
+        if (!elements.toggle || !elements.panel) {
+            return;
+        }
+
+        elements.panel.hidden = !livePreviewEnabled;
+        elements.toggle.classList.toggle('btn-primary', livePreviewEnabled);
+        elements.toggle.classList.toggle('btn-outline-primary', !livePreviewEnabled);
+        elements.toggle.setAttribute('aria-expanded', livePreviewEnabled ? 'true' : 'false');
+        elements.toggle.setAttribute('data-bs-title', livePreviewEnabled ? 'Sembunyikan preview CV dari isi form saat ini.' : 'Tampilkan preview CV dari isi form saat ini.');
+
+        if (elements.toggleText) {
+            elements.toggleText.textContent = livePreviewEnabled ? 'Sembunyikan Preview' : 'Tampilkan Preview';
+        }
+
+        if (elements.status) {
+            elements.status.textContent = livePreviewEnabled ? 'Aktif' : 'Nonaktif';
+        }
+    }
+
+    function toggleLivePreview() {
+        var elements = livePreviewElements();
+
+        if (!elements.toggle || !elements.panel) {
+            return;
+        }
+
+        livePreviewEnabled = !livePreviewEnabled;
+        syncLivePreviewState(elements);
+
+        if (livePreviewEnabled) {
+            updateLivePreview();
+        }
+    }
+
+    function scheduleLivePreviewUpdate() {
+        var elements = livePreviewElements();
+
+        if (!livePreviewEnabled || !elements.output) {
+            return;
+        }
+
+        if (elements.status) {
+            elements.status.textContent = 'Memperbarui';
+        }
+
+        if (livePreviewUpdateTimer) {
+            window.clearTimeout(livePreviewUpdateTimer);
+        }
+
+        livePreviewUpdateTimer = window.setTimeout(function () {
+            livePreviewUpdateTimer = null;
+            updateLivePreview();
+        }, 120);
+    }
+
+    function updateLivePreview() {
+        var elements = livePreviewElements();
+        var data;
+
+        if (!livePreviewEnabled || !elements.output) {
+            return;
+        }
+
+        data = collectLivePreviewData();
+        renderLivePreview(data);
+
+        if (elements.status) {
+            elements.status.textContent = 'Aktif';
+        }
+    }
+
+    function collectLivePreviewData() {
+        var elements = livePreviewElements();
+        var form = elements.form;
+        var location = cleanLivePreviewList([
+            selectedLivePreviewOptionText('village_id'),
+            selectedLivePreviewOptionText('district_id'),
+            selectedLivePreviewOptionText('regency_id'),
+            selectedLivePreviewOptionText('province_id'),
+        ]);
+
+        return {
+            nik: form ? cleanLivePreviewText(form.dataset.livePreviewNik || '') : '',
+            full_name: livePreviewFieldValue('full_name'),
+            birth_place: livePreviewFieldValue('birth_place'),
+            birth_date: formatLivePreviewDate(livePreviewFieldValue('birth_date')),
+            gender: livePreviewGender(livePreviewFieldValue('gender')),
+            marital_status: livePreviewFieldValue('marital_status'),
+            address: cleanLivePreviewList([livePreviewFieldValue('address'), location.join(', ')]).join('\n'),
+            phone: livePreviewFieldValue('phone'),
+            email: livePreviewFieldValue('email'),
+            photo: livePreviewPhotoSrc(),
+            profile_summary: livePreviewFieldValue('profile_summary'),
+            technical_skills: splitLivePreviewList(livePreviewFieldValue('technical_skills')),
+            non_technical_skills: splitLivePreviewList(livePreviewFieldValue('non_technical_skills')),
+            educations: livePreviewRows('educations', ['level', 'institution', 'major', 'graduation_year']).slice(0, 2),
+            experiences: livePreviewRows('experiences', ['position', 'company', 'department', 'division', 'start_month', 'end_month', 'is_current', 'responsibilities']),
+            certifications: livePreviewRows('certifications', ['name', 'issuer', 'year', 'valid_until_year', 'is_lifetime', 'type']),
+            languages: livePreviewRows('languages', ['language', 'level']),
+            projects: livePreviewRows('projects', ['name', 'year']),
+            organizations: livePreviewRows('organizations', ['organization_name', 'role', 'start_year', 'end_year']),
+        };
+    }
+
+    function renderLivePreview(data) {
+        var elements = livePreviewElements();
+        var sections = [
+            renderLivePreviewSection('Ringkasan Profil', data.profile_summary ? '<p>' + escapeHtml(data.profile_summary) + '</p>' : ''),
+            renderLivePreviewSection('Pendidikan', renderLivePreviewEducations(data.educations)),
+            renderLivePreviewSection('Pengalaman Kerja', renderLivePreviewExperiences(data.experiences)),
+            renderLivePreviewSection('Keahlian', renderLivePreviewSkills(data)),
+            renderLivePreviewSection('Sertifikasi & Pelatihan', renderLivePreviewCertifications(data.certifications)),
+            renderLivePreviewSection('Tambahan', renderLivePreviewExtras(data)),
+        ].join('');
+
+        if (!elements.output) {
+            return;
+        }
+
+        elements.output.innerHTML = [
+            '<article class="cv-paper cv-live-preview-paper">',
+            renderLivePreviewHeader(data),
+            sections,
+            '</article>',
+        ].join('');
+
+        if (elements.empty) {
+            elements.empty.hidden = true;
+        }
+    }
+
+    function renderLivePreviewHeader(data) {
+        var name = data.full_name || 'Nama belum diisi';
+        var birth = (data.birth_place || 'Tempat lahir belum diisi') + ', ' + (data.birth_date || '-');
+        var meta = [
+            'NIK: ' + (data.nik || '-'),
+            birth,
+            data.gender || '-',
+            data.marital_status || '-',
+        ].map(function (item) {
+            return escapeHtml(item);
+        }).join('<span>|</span>');
+        var photo = data.photo
+            ? '<img src="' + escapeHtml(data.photo) + '" alt="Foto ' + escapeHtml(name) + '">'
+            : '';
+
+        return [
+            '<header class="cv-output-header">',
+            '<div class="cv-output-header-grid">',
+            '<div class="cv-output-header-main">',
+            '<h1>' + escapeHtml(name) + '</h1>',
+            '<p class="cv-output-meta">' + meta + '</p>',
+            '<p class="cv-output-contact">' + nl2br(escapeHtml(data.address || 'Alamat belum diisi')) + '</p>',
+            '<p class="cv-output-contact">' + escapeHtml(data.phone || 'No. HP belum diisi') + '<span>|</span>' + escapeHtml(data.email || 'Email belum diisi') + '</p>',
+            '</div>',
+            '<div class="cv-output-photo-frame ' + (data.photo ? 'has-photo' : 'is-empty') + '">',
+            photo,
+            '</div>',
+            '</div>',
+            '</header>',
+        ].join('');
+    }
+
+    function renderLivePreviewSection(title, bodyHtml) {
+        if (!bodyHtml) {
+            return '';
+        }
+
+        return '<section class="cv-output-section"><h2>' + escapeHtml(title) + '</h2>' + bodyHtml + '</section>';
+    }
+
+    function renderLivePreviewEducations(rows) {
+        return rows.map(function (education) {
+            var meta = cleanLivePreviewList([
+                education.institution || 'Institusi belum diisi',
+                education.major,
+                education.graduation_year,
+            ]).map(escapeHtml).join('<span>|</span>');
+
+            return [
+                '<div class="cv-output-entry">',
+                '<h3>' + escapeHtml(education.level || 'Jenjang belum diisi') + '</h3>',
+                '<p class="cv-output-meta">' + meta + '</p>',
+                '</div>',
+            ].join('');
+        }).join('');
+    }
+
+    function renderLivePreviewExperiences(rows) {
+        return rows.map(function (experience) {
+            var meta = cleanLivePreviewList([
+                experience.company || 'Perusahaan belum diisi',
+                experience.department,
+                experience.division,
+                livePreviewPeriod(experience.start_month, experience.end_month, !!experience.is_current),
+            ]).map(escapeHtml).join('<span>|</span>');
+            var responsibilities = livePreviewResponsibilitiesHtml(experience.responsibilities);
+
+            return [
+                '<div class="cv-output-entry">',
+                '<h3>' + escapeHtml(experience.position || 'Nama posisi belum diisi') + '</h3>',
+                '<p class="cv-output-meta">' + meta + '</p>',
+                responsibilities ? '<div class="cv-output-rich-text">' + responsibilities + '</div>' : '',
+                '</div>',
+            ].join('');
+        }).join('');
+    }
+
+    function renderLivePreviewSkills(data) {
+        var items = [];
+
+        if (data.technical_skills.length) {
+            items.push('<p><strong>Teknis:</strong> ' + escapeHtml(data.technical_skills.join(', ')) + '</p>');
+        }
+
+        if (data.non_technical_skills.length) {
+            items.push('<p><strong>Non-teknis:</strong> ' + escapeHtml(data.non_technical_skills.join(', ')) + '</p>');
+        }
+
+        return items.join('');
+    }
+
+    function renderLivePreviewCertifications(rows) {
+        if (!rows.length) {
+            return '';
+        }
+
+        return [
+            '<div class="table-responsive"><table class="cv-output-table">',
+            '<thead><tr><th>Nama</th><th>Penerbit/Penyelenggara</th><th>Tahun</th><th>Berlaku s/d</th><th>Jenis</th></tr></thead>',
+            '<tbody>',
+            rows.map(function (certification) {
+                return [
+                    '<tr>',
+                    '<td>' + escapeHtml(certification.name || '-') + '</td>',
+                    '<td>' + escapeHtml(certification.issuer || '-') + '</td>',
+                    '<td>' + escapeHtml(certification.year || '-') + '</td>',
+                    '<td>' + escapeHtml(certification.is_lifetime ? 'Seumur hidup' : (certification.valid_until_year || '-')) + '</td>',
+                    '<td>' + escapeHtml(certification.type || '-') + '</td>',
+                    '</tr>',
+                ].join('');
+            }).join(''),
+            '</tbody></table></div>',
+        ].join('');
+    }
+
+    function renderLivePreviewExtras(data) {
+        var blocks = [];
+
+        if (data.languages.length) {
+            blocks.push('<p><strong>Bahasa:</strong> ' + escapeHtml(data.languages.map(function (language) {
+                return language.language + (language.level ? ' (' + language.level + ')' : '');
+            }).join(', ')) + '</p>');
+        }
+
+        if (data.projects.length) {
+            blocks.push('<p><strong>Proyek:</strong> ' + escapeHtml(data.projects.map(function (project) {
+                return project.name + (project.year ? ' (' + project.year + ')' : '');
+            }).join(', ')) + '</p>');
+        }
+
+        if (data.organizations.length) {
+            blocks.push('<p><strong>Organisasi:</strong> ' + escapeHtml(data.organizations.map(function (organization) {
+                var role = organization.role ? organization.role + ', ' : '';
+                var period = livePreviewYearPeriod(organization.start_year, organization.end_year);
+
+                return role + organization.organization_name + (period ? ' (' + period + ')' : '');
+            }).join(', ')) + '</p>');
+        }
+
+        return blocks.join('');
+    }
+
+    function livePreviewRows(type, fields) {
+        var rows = Array.prototype.slice.call(document.querySelectorAll('[data-repeat-list="' + type + '"] [data-repeat-item]'));
+
+        return rows.map(function (row) {
+            var item = {};
+
+            fields.forEach(function (fieldName) {
+                var field = repeatField(row, fieldName);
+
+                item[fieldName] = field && field.type === 'checkbox'
+                    ? field.checked
+                    : (fieldName === 'responsibilities'
+                        ? cleanLivePreviewMultilineText(fieldValue(field))
+                        : cleanLivePreviewText(fieldValue(field)));
+            });
+
+            return item;
+        }).filter(function (item) {
+            return fields.some(function (fieldName) {
+                return item[fieldName] === true || String(item[fieldName] || '').trim() !== '';
+            });
+        });
+    }
+
+    function livePreviewFieldValue(name) {
+        var field = document.querySelector('[name="' + name + '"]');
+
+        return cleanLivePreviewText(fieldValue(field));
+    }
+
+    function selectedLivePreviewOptionText(name) {
+        var select = document.querySelector('[name="' + name + '"]');
+        var option = select && select.selectedOptions && select.selectedOptions.length ? select.selectedOptions[0] : null;
+
+        if (!select || !select.value || !option) {
+            return '';
+        }
+
+        return cleanLivePreviewText(option.textContent || '');
+    }
+
+    function livePreviewPhotoSrc() {
+        var preview = document.querySelector('[data-photo-preview]');
+
+        if (!preview || preview.classList.contains('d-none')) {
+            return '';
+        }
+
+        return preview.getAttribute('src') || '';
+    }
+
+    function splitLivePreviewList(value) {
+        if (!value) {
+            return [];
+        }
+
+        return cleanLivePreviewList(value.split(/[,;\n]+/));
+    }
+
+    function cleanLivePreviewList(items) {
+        return items.map(cleanLivePreviewText).filter(function (item) {
+            return item !== '';
+        });
+    }
+
+    function cleanLivePreviewText(value) {
+        value = String(value || '').replace(/[\u3400-\u9FFF\uF900-\uFAFF]+/g, '');
+        value = value.replace(/\s+/g, ' ').trim();
+
+        return value;
+    }
+
+    function cleanLivePreviewMultilineText(value) {
+        value = String(value || '').replace(/[\u3400-\u9FFF\uF900-\uFAFF]+/g, '');
+
+        return value.split(/\n+/).map(cleanLivePreviewText).filter(function (line) {
+            return line !== '';
+        }).join('\n');
+    }
+
+    function formatLivePreviewDate(value) {
+        var parts = String(value || '').split('-');
+
+        if (parts.length !== 3) {
+            return '';
+        }
+
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+
+    function livePreviewGender(value) {
+        if (value === 'L') {
+            return 'Laki-laki';
+        }
+
+        if (value === 'P') {
+            return 'Perempuan';
+        }
+
+        return value;
+    }
+
+    function livePreviewPeriod(startMonth, endMonth, isCurrent) {
+        var start = formatLivePreviewMonth(startMonth);
+
+        if (!start && !endMonth) {
+            return '';
+        }
+
+        return (start || '-') + ' - ' + (isCurrent ? 'Sekarang' : (formatLivePreviewMonth(endMonth) || '-'));
+    }
+
+    function livePreviewYearPeriod(startYear, endYear) {
+        if (!startYear && !endYear) {
+            return '';
+        }
+
+        return (startYear || '-') + ' - ' + (endYear || 'Sekarang');
+    }
+
+    function formatLivePreviewMonth(value) {
+        var parts = String(value || '').split('-');
+        var months = [
+            'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember',
+        ];
+        var monthIndex;
+
+        if (parts.length !== 2) {
+            return '';
+        }
+
+        monthIndex = parseInt(parts[1], 10) - 1;
+
+        if (monthIndex < 0 || monthIndex > 11) {
+            return '';
+        }
+
+        return months[monthIndex] + ' ' + parts[0];
+    }
+
+    function livePreviewResponsibilitiesHtml(value) {
+        var lines = cleanLivePreviewList(String(value || '').split(/\n+/));
+
+        if (!lines.length) {
+            return '';
+        }
+
+        return '<ul>' + lines.map(function (line) {
+            return '<li>' + escapeHtml(line) + '</li>';
+        }).join('') + '</ul>';
+    }
+
+    function nl2br(value) {
+        return String(value || '').replace(/\n/g, '<br>');
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     function photoElements() {
@@ -1661,6 +2310,7 @@
                 elements.placeholder.classList.add('d-none');
             }
 
+            scheduleLivePreviewUpdate();
             return;
         }
 
@@ -1672,6 +2322,8 @@
         if (elements.placeholder) {
             elements.placeholder.classList.remove('d-none');
         }
+
+        scheduleLivePreviewUpdate();
     }
 
     function ensurePhotoCropModal() {
@@ -1852,12 +2504,19 @@
     }
 
     document.addEventListener('click', function (event) {
+        var livePreviewToggle = event.target.closest('[data-live-preview-toggle]');
         var guideButton = event.target.closest('[data-guide-start]');
         var wizardStepButton = event.target.closest('[data-wizard-step-target]');
         var wizardPrevButton = event.target.closest('[data-wizard-prev]');
         var wizardNextButton = event.target.closest('[data-wizard-next]');
         var addButton = event.target.closest('[data-repeat-add]');
         var removeButton = event.target.closest('[data-repeat-remove]');
+
+        if (livePreviewToggle) {
+            event.preventDefault();
+            toggleLivePreview();
+            return;
+        }
 
         if (guideButton) {
             var tooltip = window.bootstrap && window.bootstrap.Tooltip
@@ -1902,11 +2561,13 @@
         if (addButton) {
             addRepeatItem(addButton.dataset.repeatAdd);
             refreshWizardAccessState();
+            scheduleLivePreviewUpdate();
         }
 
         if (removeButton) {
             removeRepeatItem(removeButton);
             refreshWizardAccessState();
+            scheduleLivePreviewUpdate();
         }
 
         if (event.target.closest('[data-photo-crop-apply]')) {
@@ -1953,6 +2614,10 @@
             syncFamilyDetails();
         }
 
+        if (event.target.matches('[data-domicile-same-toggle]')) {
+            syncDomicileAddressFields();
+        }
+
         if (event.target.matches('[data-photo-remove]')) {
             setPhotoPreview(event.target.checked ? null : (photoElements().frame.dataset.photoOriginal || null));
         }
@@ -1962,6 +2627,7 @@
         }
 
         refreshWizardAccessState();
+        scheduleLivePreviewUpdate();
     });
 
     document.addEventListener('input', function (event) {
@@ -1974,9 +2640,15 @@
             syncOrganizationCustomInput(event.target);
         }
 
+        if (event.target.matches('[data-ktp-address]')) {
+            syncDomicileAddressFields();
+        }
+
         if (event.target.matches('.js-countable')) {
             updateCounters();
         }
+
+        scheduleLivePreviewUpdate();
     });
 
     document.addEventListener('focusin', function (event) {
@@ -1996,14 +2668,20 @@
         }, 0);
     });
 
+    document.addEventListener('submit', function (event) {
+        validateWizardSubmit(event);
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         applyCurrentToggles(document);
         syncCopyCurrentJobToggleAvailability();
         initOrganizationFields();
         syncFamilyDetails();
+        syncDomicileAddressFields();
         initGuideTooltips();
         updateCounters();
         initWizard();
+        initLivePreview();
 
         if (shouldAutoStartGuide()) {
             window.setTimeout(function () {

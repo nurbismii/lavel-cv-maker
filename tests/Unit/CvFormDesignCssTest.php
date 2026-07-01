@@ -29,4 +29,16 @@ class CvFormDesignCssTest extends TestCase
         $this->assertStringContainsString('white-space: normal;', $css);
         $this->assertStringContainsString('min-height: 44px;', $css);
     }
+
+    public function test_cv_wizard_mobile_steps_use_compact_horizontal_scroller()
+    {
+        $css = $this->css();
+
+        $this->assertStringContainsString('@media (max-width: 430px)', $css);
+        $this->assertStringContainsString('grid-auto-flow: column;', $css);
+        $this->assertStringContainsString('grid-auto-columns: minmax(128px, 72vw);', $css);
+        $this->assertStringContainsString('overflow-x: auto;', $css);
+        $this->assertStringContainsString('.cv-wizard-step-subtitle', $css);
+        $this->assertStringContainsString('display: none;', $css);
+    }
 }

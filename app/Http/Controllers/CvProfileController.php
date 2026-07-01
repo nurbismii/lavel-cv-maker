@@ -163,6 +163,9 @@ class CvProfileController extends Controller
                 'religion' => $profile->religion ?: $employee['religion'],
                 'mother_name' => $profile->mother_name ?: $employee['mother_name'],
                 'spouse_name' => $profile->spouse_name ?: $employee['spouse_name'],
+                'ktp_address' => $profile->ktp_address ?: $employee['ktp_address'],
+                'domicile_same_as_ktp' => $profile->domicile_same_as_ktp ?: $employee['domicile_same_as_ktp'],
+                'address' => $profile->address ?: $employee['address'],
                 'work_area' => $profile->work_area ?: $employee['work_area'],
                 'department' => $profile->department ?: $employee['department'],
                 'division' => $profile->division ?: $employee['division'],
@@ -196,6 +199,11 @@ class CvProfileController extends Controller
             DB::transaction(function () use ($request, $profile, $locationSelection, $photoPath, $documentUploads, &$oldDocumentPaths) {
                 $requiresFamilyDetails = $this->requiresFamilyDetails($request->input('marital_status'));
                 $hasChildren = $requiresFamilyDetails && $request->boolean('has_children');
+                $ktpAddress = $this->nullableTrim($request->input('ktp_address'));
+                $domicileSameAsKtp = $request->boolean('domicile_same_as_ktp') && $ktpAddress !== null;
+                $domicileAddress = $domicileSameAsKtp
+                    ? $ktpAddress
+                    : $this->nullableTrim($request->input('address'));
 
                 $profile->update(array_merge([
                     'status' => CvProfile::STATUS_DRAFT,
@@ -220,7 +228,9 @@ class CvProfileController extends Controller
                     'has_children' => $hasChildren,
                     'children_names' => $hasChildren ? $this->childrenNames($request->input('children_names', [])) : [],
                     'mother_name' => $this->nullableTrim($request->input('mother_name')),
-                    'address' => $request->input('address'),
+                    'ktp_address' => $ktpAddress,
+                    'domicile_same_as_ktp' => $domicileSameAsKtp,
+                    'address' => $domicileAddress,
                     'phone' => $request->input('phone'),
                     'email' => $request->input('email'),
                     'work_area' => $this->workAreaValue($request),

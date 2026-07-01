@@ -78,7 +78,9 @@ class VPeopleService
     private function mapEmployee(array $employee): array
     {
         $position = $employee['jabatan'] ?: $employee['posisi'];
-        $address = $employee['alamat_domisili'] ?: $employee['alamat_ktp'];
+        $ktpAddress = $this->nullableTrim($employee['alamat_ktp'] ?? null);
+        $domicileAddress = $this->nullableTrim($employee['alamat_domisili'] ?? null);
+        $address = $domicileAddress ?: $ktpAddress;
 
         return [
             'nik' => $employee['nik'],
@@ -94,6 +96,8 @@ class VPeopleService
             'contract_status' => $employee['status_karyawan'],
             'resign_status' => $employee['status_resign'],
             'phone' => $employee['no_telp'],
+            'ktp_address' => $ktpAddress,
+            'domicile_same_as_ktp' => $ktpAddress && $address === $ktpAddress,
             'address' => $address,
             'work_area' => $employee['area_kerja'],
             'department' => $employee['departemen'],
