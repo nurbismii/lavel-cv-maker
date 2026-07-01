@@ -46,6 +46,14 @@ class CvWizardRequiredStepValidationTest extends TestCase
         $this->assertStringContainsString('Simpan Draft', $edit);
     }
 
+    public function test_existing_document_action_uses_view_label_instead_of_download()
+    {
+        $edit = $this->viewFile('cv/edit.blade.php');
+
+        $this->assertStringContainsString('bi-eye me-1"></i> Lihat', $edit);
+        $this->assertStringNotContainsString('bi-download me-1"></i> Download', $edit);
+    }
+
     public function test_cv_form_marks_blocking_fields_as_required()
     {
         $edit = $this->viewFile('cv/edit.blade.php');

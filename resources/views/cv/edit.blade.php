@@ -912,8 +912,8 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                     <span>&middot;</span> Upload {{ $document->uploaded_at->format('d M Y H:i') }}
                                     @endif
                                 </div>
-                                <a href="{{ route('cv.documents.download', $document) }}" class="btn btn-outline-primary btn-sm mt-2">
-                                    <i class="bi bi-download me-1"></i> Download
+                                <a href="{{ route('cv.documents.download', $document) }}" class="btn btn-outline-primary btn-sm mt-2" target="_blank" rel="noopener" data-bs-toggle="tooltip" data-bs-title="Lihat dokumen di tab baru.">
+                                    <i class="bi bi-eye me-1"></i> Lihat
                                 </a>
                             </div>
                             @endif

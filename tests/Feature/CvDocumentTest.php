@@ -55,7 +55,7 @@ class CvDocumentTest extends TestCase
         Storage::disk('local')->assertExists($document->file_path);
     }
 
-    public function test_employee_can_download_own_document()
+    public function test_employee_can_view_own_document_inline()
     {
         Storage::fake('local');
 
@@ -78,7 +78,11 @@ class CvDocumentTest extends TestCase
         $response = $this->actingAs($user)->get('/cv/documents/' . $documentId . '/download');
 
         $response->assertOk();
-        $this->assertStringContainsString('ktp.pdf', $response->headers->get('content-disposition'));
+        $contentDisposition = $response->headers->get('content-disposition');
+
+        $this->assertStringContainsString('inline', strtolower($contentDisposition));
+        $this->assertStringContainsString('ktp.pdf', $contentDisposition);
+        $this->assertStringNotContainsString('attachment', strtolower($contentDisposition));
     }
 
     public function test_employee_can_remove_document_from_cv_draft_form()
