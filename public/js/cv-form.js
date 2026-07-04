@@ -1914,6 +1914,9 @@
             address: cleanLivePreviewList([livePreviewFieldValue('address'), location.join(', ')]).join('\n'),
             phone: livePreviewFieldValue('phone'),
             email: livePreviewFieldValue('email'),
+            instagram: livePreviewFieldValue('instagram'),
+            linkedin: livePreviewFieldValue('linkedin'),
+            facebook: livePreviewFieldValue('facebook'),
             photo: livePreviewPhotoSrc(),
             profile_summary: livePreviewFieldValue('profile_summary'),
             technical_skills: splitLivePreviewList(livePreviewFieldValue('technical_skills')),
@@ -1977,6 +1980,7 @@
             '<p class="cv-output-meta">' + meta + '</p>',
             '<p class="cv-output-contact">' + nl2br(escapeHtml(data.address || 'Alamat belum diisi')) + '</p>',
             '<p class="cv-output-contact">' + escapeHtml(data.phone || 'No. HP belum diisi') + '<span>|</span>' + escapeHtml(data.email || 'Email belum diisi') + '</p>',
+            renderLivePreviewSocialMedia(data),
             '</div>',
             '<div class="cv-output-photo-frame ' + (data.photo ? 'has-photo' : 'is-empty') + '">',
             photo,
@@ -1984,6 +1988,24 @@
             '</div>',
             '</header>',
         ].join('');
+    }
+
+    function renderLivePreviewSocialMedia(data) {
+        var items = [
+            { label: 'Instagram:', value: data.instagram },
+            { label: 'LinkedIn:', value: data.linkedin },
+            { label: 'Facebook:', value: data.facebook },
+        ].filter(function (item) {
+            return String(item.value || '').trim() !== '';
+        });
+
+        if (!items.length) {
+            return '';
+        }
+
+        return '<p class="cv-output-contact">' + items.map(function (item) {
+            return '<strong>' + escapeHtml(item.label) + '</strong> ' + escapeHtml(item.value);
+        }).join('<span>|</span>') + '</p>';
     }
 
     function renderLivePreviewSection(title, bodyHtml) {

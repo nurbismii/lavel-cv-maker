@@ -1,6 +1,13 @@
 <article class="cv-paper">
     @php
         $photoSrc = !empty($isPdf) ? ($preview['photo_data_uri'] ?? null) : ($preview['photo_url'] ?? null);
+        $socialMediaItems = array_filter([
+            'Instagram:' => $profile->instagram,
+            'LinkedIn:' => $profile->linkedin,
+            'Facebook:' => $profile->facebook,
+        ], function ($value) {
+            return filled($value);
+        });
     @endphp
 
     <header class="cv-output-header">
@@ -18,6 +25,16 @@
                 </p>
                 <p class="cv-output-contact">{!! nl2br(e($preview['address'] ?: 'Alamat belum diisi')) !!}</p>
                 <p class="cv-output-contact">{{ $profile->phone ?: 'No. HP belum diisi' }} <span>|</span> {{ $profile->email ?: 'Email belum diisi' }}</p>
+                @if (count($socialMediaItems))
+                    <p class="cv-output-contact">
+                        @foreach ($socialMediaItems as $label => $value)
+                            @if (!$loop->first)
+                                <span>|</span>
+                            @endif
+                            <strong>{{ $label }}</strong> {{ $value }}
+                        @endforeach
+                    </p>
+                @endif
             </div>
             <div class="cv-output-photo-frame {{ $photoSrc ? 'has-photo' : 'is-empty' }}">
                 @if ($photoSrc)

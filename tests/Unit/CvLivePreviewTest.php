@@ -21,6 +21,11 @@ class CvLivePreviewTest extends TestCase
         return file_get_contents(public_path('css/app.css'));
     }
 
+    private function hrisTemplate(): string
+    {
+        return file_get_contents(resource_path('views/cv/templates/hris.blade.php'));
+    }
+
     public function test_cv_edit_page_has_live_preview_active_by_default()
     {
         $view = $this->editView();
@@ -93,6 +98,51 @@ class CvLivePreviewTest extends TestCase
         $this->assertStringContainsString('.cv-completion-missing', $css);
         $this->assertStringContainsString('.cv-live-preview-shell', $css);
         $this->assertStringContainsString('max-height: 74vh;', $css);
+    }
+
+    public function test_cv_edit_page_has_optional_social_media_fields()
+    {
+        $view = $this->editView();
+
+        foreach ([
+            'name="instagram"',
+            'name="linkedin"',
+            'name="facebook"',
+            'Instagram',
+            'LinkedIn',
+            'Facebook',
+            'Opsional. Bisa diisi username atau URL profil.',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $view);
+        }
+    }
+
+    public function test_cv_output_and_live_preview_render_optional_social_media()
+    {
+        $template = $this->hrisTemplate();
+        $script = $this->script();
+
+        foreach ([
+            '$socialMediaItems',
+            '$profile->instagram',
+            '$profile->linkedin',
+            '$profile->facebook',
+            'Instagram:',
+            'LinkedIn:',
+            'Facebook:',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $template);
+        }
+
+        foreach ([
+            "instagram: livePreviewFieldValue('instagram')",
+            "linkedin: livePreviewFieldValue('linkedin')",
+            "facebook: livePreviewFieldValue('facebook')",
+            'function renderLivePreviewSocialMedia',
+            'renderLivePreviewSocialMedia(data)',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $script);
+        }
     }
 
     private function livePreviewSource(string $script): string

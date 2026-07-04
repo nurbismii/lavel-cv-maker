@@ -507,6 +507,24 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <input type="email" name="email" class="form-control readonly-field @error('email') is-invalid @enderror" value="{{ old('email', $profile->email) }}" readonly>
                                         @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Instagram</label>
+                                        <input type="text" name="instagram" class="form-control @error('instagram') is-invalid @enderror" value="{{ old('instagram', $profile->instagram) }}" placeholder="@namauser atau URL profil">
+                                        <div class="form-text">Opsional. Bisa diisi username atau URL profil.</div>
+                                        @error('instagram') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">LinkedIn</label>
+                                        <input type="text" name="linkedin" class="form-control @error('linkedin') is-invalid @enderror" value="{{ old('linkedin', $profile->linkedin) }}" placeholder="linkedin.com/in/namauser">
+                                        <div class="form-text">Opsional. Bisa diisi username atau URL profil.</div>
+                                        @error('linkedin') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Facebook</label>
+                                        <input type="text" name="facebook" class="form-control @error('facebook') is-invalid @enderror" value="{{ old('facebook', $profile->facebook) }}" placeholder="Nama profil atau URL">
+                                        <div class="form-text">Opsional. Bisa diisi username atau URL profil.</div>
+                                        @error('facebook') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
                                 </div>
                             </section>
                         </div>

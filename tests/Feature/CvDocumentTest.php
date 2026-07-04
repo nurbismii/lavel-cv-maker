@@ -180,6 +180,26 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_employee_can_save_optional_social_media_fields_from_cv_draft_form()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'instagram' => '@budi.santoso',
+            'linkedin' => 'https://linkedin.com/in/budi-santoso',
+            'facebook' => 'Budi Santoso',
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $this->assertDatabaseHas('cv_profiles', [
+            'user_id' => $user->id,
+            'instagram' => '@budi.santoso',
+            'linkedin' => 'https://linkedin.com/in/budi-santoso',
+            'facebook' => 'Budi Santoso',
+        ]);
+    }
+
     private function validCvPayload(array $overrides = []): array
     {
         return array_merge([
@@ -257,6 +277,9 @@ class CvDocumentTest extends TestCase
             $table->text('address')->nullable();
             $table->string('phone', 64)->nullable();
             $table->string('email')->nullable();
+            $table->string('instagram')->nullable();
+            $table->string('linkedin')->nullable();
+            $table->string('facebook')->nullable();
             $table->string('work_area')->nullable();
             $table->string('department')->nullable();
             $table->string('division')->nullable();
