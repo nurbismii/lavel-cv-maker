@@ -6,18 +6,18 @@ Ensure the saved CV preview, generated PDF, and in-form live preview display dom
 
 ## Address rules
 
-1. The primary address is always labelled `Alamat Domisili`.
-2. When `domicile_same_as_ktp` is true, render only the domicile address.
-3. When the domicile and KTP addresses normalize to the same value, render only the domicile address. This protects legacy data where the toggle was not saved correctly.
-4. When the addresses differ and a KTP address exists, render both entries in this order:
+1. When `domicile_same_as_ktp` is true, render only `Alamat Domisili`.
+2. When the domicile and KTP addresses normalize to the same value, render only `Alamat Domisili`. This protects legacy data where the toggle was not saved correctly.
+3. When the addresses differ and both values exist, render both entries in this order:
+   - `Alamat KTP`
    - `Alamat Domisili`
-   - `Alamat Sesuai KTP`
-5. The existing administrative location (village, district, regency, and province) remains appended only to the domicile address.
-6. Empty values are not rendered. Existing drafts that only have `address` remain valid and display one domicile address.
+4. The administrative location is a third, separate entry after the address entries, labelled `Kel/Desa, Kec, Kab/Kota, Prov`.
+5. The administrative location is rendered only when it has data and belongs to the domicile address.
+6. Empty values are not rendered. Existing drafts that only have `address` remain valid and display one domicile address followed by location when available.
 
 ## Architecture
 
-`CvPreviewDataService` will prepare a structured `addresses` collection and preserve the existing `address` value only where existing consumers need it during the transition. The saved preview template and PDF view will iterate over this shared collection. The browser live-preview script will implement the same rules from the unsaved form values, including the current state of the domicile-same-as-KTP toggle.
+`CvPreviewDataService` will prepare an ordered structured `addresses` collection containing KTP, domicile, and location entries as applicable. The saved preview template and PDF view will iterate over this shared collection. The browser live-preview script will implement the same ordering from unsaved form values, including the current state of the domicile-same-as-KTP toggle.
 
 ## Testing
 
