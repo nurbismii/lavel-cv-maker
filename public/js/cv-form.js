@@ -2013,21 +2013,28 @@
 
     function livePreviewAddresses(data) {
         var domicile = cleanLivePreviewMultilineText(data.address);
-        var domicileWithLocation = cleanLivePreviewList([domicile, data.location]).join('\n');
+        var location = cleanLivePreviewText(data.location);
         var ktp = cleanLivePreviewMultilineText(data.ktp_address);
         var addresses = [];
 
-        if (domicileWithLocation) {
+        if (domicile && ktp && !data.domicile_same_as_ktp && normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)) {
             addresses.push({
-                label: 'Alamat Domisili',
-                value: domicileWithLocation,
+                label: 'Alamat KTP',
+                value: ktp,
             });
         }
 
-        if (domicileWithLocation && ktp && !data.domicile_same_as_ktp && normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)) {
+        if (domicile) {
             addresses.push({
-                label: 'Alamat Sesuai KTP',
-                value: ktp,
+                label: 'Alamat Domisili',
+                value: domicile,
+            });
+        }
+
+        if (domicile && location) {
+            addresses.push({
+                label: 'Kel/Desa, Kec, Kab/Kota, Prov',
+                value: location,
             });
         }
 

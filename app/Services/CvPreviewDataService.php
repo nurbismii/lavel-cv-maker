@@ -88,8 +88,11 @@ class CvPreviewDataService
 
     private function address(CvProfile $profile): ?string
     {
-        $lines = [];
-        $address = $this->displayAddress($profile->address);
+        return $this->displayAddress($profile->address);
+    }
+
+    private function location(CvProfile $profile): ?string
+    {
         $location = $this->cleanList([
             $profile->village_name,
             $profile->district_name,
@@ -97,35 +100,34 @@ class CvPreviewDataService
             $profile->province_name,
         ]);
 
-        if ($address) {
-            $lines[] = $address;
-        }
-
-        if (count($location)) {
-            $lines[] = implode(', ', $location);
-        }
-
-        return count($lines) ? implode("\n", $lines) : null;
+        return count($location) ? implode(', ', $location) : null;
     }
 
     private function addresses(CvProfile $profile): array
     {
         $domicileAddress = $this->displayAddress($profile->address);
-        $domicile = $this->address($profile);
+        $location = $this->location($profile);
         $ktp = $this->displayAddress($profile->ktp_address);
         $addresses = [];
 
-        if ($domicile) {
+        if ($domicileAddress && $ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
             $addresses[] = [
-                'label' => 'Alamat Domisili',
-                'value' => $domicile,
+                'label' => 'Alamat KTP',
+                'value' => $ktp,
             ];
         }
 
-        if ($domicile && $ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
+        if ($domicileAddress) {
             $addresses[] = [
-                'label' => 'Alamat Sesuai KTP',
-                'value' => $ktp,
+                'label' => 'Alamat Domisili',
+                'value' => $domicileAddress,
+            ];
+        }
+
+        if ($domicileAddress && $location) {
+            $addresses[] = [
+                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
+                'value' => $location,
             ];
         }
 

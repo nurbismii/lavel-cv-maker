@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class CvPreviewDataServiceTest extends TestCase
 {
-    public function test_it_returns_only_the_domicile_address_when_toggle_is_enabled()
+    public function test_it_returns_domicile_then_location_when_addresses_are_the_same()
     {
         $profile = $this->profile([
             'address' => "Jl. Domisili No. 10\nBlok A",
@@ -26,12 +26,16 @@ class CvPreviewDataServiceTest extends TestCase
         $this->assertSame([
             [
                 'label' => 'Alamat Domisili',
-                'value' => "Jl. Domisili No. 10\nBlok A\nWawatu, Moramo, Konawe Selatan, Sulawesi Tenggara",
+                'value' => "Jl. Domisili No. 10\nBlok A",
+            ],
+            [
+                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
+                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
             ],
         ], $data['addresses']);
     }
 
-    public function test_it_returns_domicile_and_distinct_ktp_addresses()
+    public function test_it_returns_ktp_domicile_then_location_when_addresses_are_different()
     {
         $profile = $this->profile([
             'address' => "Jl. Domisili No. 10\nBlok A",
@@ -47,12 +51,16 @@ class CvPreviewDataServiceTest extends TestCase
 
         $this->assertSame([
             [
-                'label' => 'Alamat Domisili',
-                'value' => "Jl. Domisili No. 10\nBlok A\nWawatu, Moramo, Konawe Selatan, Sulawesi Tenggara",
+                'label' => 'Alamat KTP',
+                'value' => "Jl. KTP No. 20\nRT 02",
             ],
             [
-                'label' => 'Alamat Sesuai KTP',
-                'value' => "Jl. KTP No. 20\nRT 02",
+                'label' => 'Alamat Domisili',
+                'value' => "Jl. Domisili No. 10\nBlok A",
+            ],
+            [
+                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
+                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
             ],
         ], $data['addresses']);
     }
@@ -85,7 +93,11 @@ class CvPreviewDataServiceTest extends TestCase
         $this->assertSame([
             [
                 'label' => 'Alamat Domisili',
-                'value' => "Jl. Merdeka No. 10\nRT 02\nWawatu, Moramo",
+                'value' => "Jl. Merdeka No. 10\nRT 02",
+            ],
+            [
+                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
+                'value' => 'Wawatu, Moramo',
             ],
         ], $data['addresses']);
     }
