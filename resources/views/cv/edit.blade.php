@@ -395,7 +395,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                                 @error('weight_kg') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                             </div>
                                         </div>
-                                        
+
                                         <div class="col-md-6">
                                             <label class="form-label">Agama</label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
@@ -567,22 +567,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <label class="form-label">Alamat Sesuai KTP</label>
                                         <span class="badge badge-vpeople ms-1">V-People</span>
                                         <textarea name="ktp_address" rows="3" class="form-control @error('ktp_address') is-invalid @enderror" placeholder="Alamat lengkap sesuai KTP" data-ktp-address>{{ $ktpAddressValue }}</textarea>
-                                        <div class="form-text">Isi alamat sesuai KTP. Jika sama dengan domisili, aktifkan toggle di bawah.</div>
                                         @error('ktp_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="cv-family-toggle">
-                                            <div>
-                                                <span class="cv-family-toggle-title">Alamat domisili sama dengan alamat KTP</span>
-                                                <span class="cv-family-toggle-subtitle">Aktifkan jika anda tinggal di alamat yang sama dengan KTP.</span>
-                                            </div>
-                                            <div class="form-check form-switch m-0">
-                                                <input type="hidden" name="domicile_same_as_ktp" value="0">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="domicileSameAsKtp" name="domicile_same_as_ktp" value="1" data-domicile-same-toggle {{ $domicileSameAsKtp ? 'checked' : '' }}>
-                                                <label class="form-check-label fw-bold" for="domicileSameAsKtp">Sama</label>
-                                            </div>
-                                        </div>
-                                        @error('domicile_same_as_ktp') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Provinsi</label>
@@ -631,6 +616,21 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             @endforeach
                                         </select>
                                         @error('village_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="form-text">Isi alamat sesuai KTP. Jika sama dengan domisili, aktifkan toggle di bawah.</div>
+                                    <div class="col-12">
+                                        <div class="cv-family-toggle">
+                                            <div>
+                                                <span class="cv-family-toggle-title">Alamat domisili sama dengan alamat KTP</span>
+                                                <span class="cv-family-toggle-subtitle">Aktifkan jika anda tinggal di alamat yang sama dengan KTP.</span>
+                                            </div>
+                                            <div class="form-check form-switch m-0">
+                                                <input type="hidden" name="domicile_same_as_ktp" value="0">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="domicileSameAsKtp" name="domicile_same_as_ktp" value="1" data-domicile-same-toggle {{ $domicileSameAsKtp ? 'checked' : '' }}>
+                                                <label class="form-check-label fw-bold" for="domicileSameAsKtp">Sama</label>
+                                            </div>
+                                        </div>
+                                        @error('domicile_same_as_ktp') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-12" data-domicile-address-panel>
                                         <label class="form-label cv-required-label">Alamat Domisili Lengkap <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
