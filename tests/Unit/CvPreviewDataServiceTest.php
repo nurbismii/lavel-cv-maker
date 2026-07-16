@@ -57,6 +57,19 @@ class CvPreviewDataServiceTest extends TestCase
         ], $data['addresses']);
     }
 
+    public function test_it_does_not_return_ktp_address_without_a_domicile_address()
+    {
+        $profile = $this->profile([
+            'address' => null,
+            'ktp_address' => 'Jl. KTP No. 20',
+            'domicile_same_as_ktp' => false,
+        ]);
+
+        $data = (new CvPreviewDataService())->build($profile, new User());
+
+        $this->assertSame([], $data['addresses']);
+    }
+
     public function test_it_does_not_duplicate_legacy_equivalent_addresses_with_different_case_or_spacing()
     {
         $profile = $this->profile([

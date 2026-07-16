@@ -122,7 +122,7 @@ class CvPreviewDataService
             ];
         }
 
-        if ($ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
+        if ($domicile && $ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
             $addresses[] = [
                 'label' => 'Alamat Sesuai KTP',
                 'value' => $ktp,

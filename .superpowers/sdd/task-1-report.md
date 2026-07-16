@@ -29,3 +29,16 @@
 - Newline-separated address lines are retained while per-line excess whitespace is normalized.
 - Administrative location names are never added to KTP values.
 - Existing unrelated editor changes were left unmodified.
+
+## Follow-up fix: KTP without domicile
+
+- Added regression coverage for an empty domicile with a populated KTP address. The expected `addresses` value is an empty array, ensuring `Alamat Sesuai KTP` can only be appended after a domicile entry.
+- RED: `php artisan test tests/Unit/CvPreviewDataServiceTest.php` failed in the new test because the service returned one `Alamat Sesuai KTP` entry.
+- GREEN: added the existing `$domicile` value as a prerequisite for appending KTP.
+- Final command: `php artisan test tests/Unit/CvPreviewDataServiceTest.php`.
+- Final output: `Tests: 4 passed`.
+
+### Follow-up self-review
+
+- A KTP-only profile now returns no address entries, so it cannot violate the first/single-entry domicile-label invariant.
+- The change does not alter outputs for profiles with a domicile address.
