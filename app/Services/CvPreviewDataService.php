@@ -51,6 +51,7 @@ class CvPreviewDataService
             'department' => $this->cleanLabel($profile->department),
             'division' => $this->cleanLabel($profile->division),
             'address' => $this->address($profile),
+            'addresses' => $this->addresses($profile),
             'photo_url' => $this->photoUrl($profile),
             'photo_data_uri' => $this->photoDataUri($profile),
             'experiences' => $this->experiences($profile),
@@ -88,7 +89,7 @@ class CvPreviewDataService
     private function address(CvProfile $profile): ?string
     {
         $lines = [];
-        $address = $this->cleanLabel($profile->address);
+        $address = $this->displayAddress($profile->address);
         $location = $this->cleanList([
             $profile->village_name,
             $profile->district_name,
@@ -105,6 +106,54 @@ class CvPreviewDataService
         }
 
         return count($lines) ? implode("\n", $lines) : null;
+    }
+
+    private function addresses(CvProfile $profile): array
+    {
+        $domicileAddress = $this->displayAddress($profile->address);
+        $domicile = $this->address($profile);
+        $ktp = $this->displayAddress($profile->ktp_address);
+        $addresses = [];
+
+        if ($domicile) {
+            $addresses[] = [
+                'label' => 'Alamat Domisili',
+                'value' => $domicile,
+            ];
+        }
+
+        if ($ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
+            $addresses[] = [
+                'label' => 'Alamat Sesuai KTP',
+                'value' => $ktp,
+            ];
+        }
+
+        return $addresses;
+    }
+
+    private function displayAddress($value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $value = preg_replace('/[\x{3400}-\x{9FFF}\x{F900}-\x{FAFF}]+/u', '', (string) $value);
+        $lines = preg_split('/\R/u', $value);
+        $lines = array_values(array_filter(array_map(function ($line) {
+            return trim(preg_replace('/\s+/', ' ', $line));
+        }, $lines)));
+
+        return count($lines) ? implode("\n", $lines) : null;
+    }
+
+    private function normalizedAddress(?string $value): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        return strtolower(preg_replace('/\s+/', ' ', trim($value)));
     }
 
     private function experiences(CvProfile $profile): array
