@@ -1911,7 +1911,10 @@
             birth_date: formatLivePreviewDate(livePreviewFieldValue('birth_date')),
             gender: livePreviewGender(livePreviewFieldValue('gender')),
             marital_status: livePreviewFieldValue('marital_status'),
-            address: cleanLivePreviewList([livePreviewFieldValue('address'), location.join(', ')]).join('\n'),
+            address: livePreviewFieldValue('address'),
+            location: location.join(', '),
+            ktp_address: livePreviewFieldValue('ktp_address'),
+            domicile_same_as_ktp: !!document.querySelector('[data-domicile-same-toggle]:checked'),
             phone: livePreviewFieldValue('phone'),
             email: livePreviewFieldValue('email'),
             instagram: livePreviewFieldValue('instagram'),
@@ -1978,7 +1981,7 @@
             '<div class="cv-output-header-main">',
             '<h1>' + escapeHtml(name) + '</h1>',
             '<p class="cv-output-meta">' + meta + '</p>',
-            '<p class="cv-output-contact">' + nl2br(escapeHtml(data.address || 'Alamat belum diisi')) + '</p>',
+            renderLivePreviewAddresses(livePreviewAddresses(data)),
             '<p class="cv-output-contact">' + escapeHtml(data.phone || 'No. HP belum diisi') + '<span>|</span>' + escapeHtml(data.email || 'Email belum diisi') + '</p>',
             renderLivePreviewSocialMedia(data),
             '</div>',
@@ -2006,6 +2009,39 @@
         return '<p class="cv-output-contact">' + items.map(function (item) {
             return '<strong>' + escapeHtml(item.label) + '</strong> ' + escapeHtml(item.value);
         }).join('<span>|</span>') + '</p>';
+    }
+
+    function livePreviewAddresses(data) {
+        var domicile = cleanLivePreviewMultilineText(data.address);
+        var domicileWithLocation = cleanLivePreviewList([domicile, data.location]).join('\n');
+        var ktp = cleanLivePreviewMultilineText(data.ktp_address);
+        var addresses = [];
+
+        if (domicileWithLocation) {
+            addresses.push({
+                label: 'Alamat Domisili',
+                value: domicileWithLocation,
+            });
+        }
+
+        if (domicileWithLocation && ktp && !data.domicile_same_as_ktp && normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)) {
+            addresses.push({
+                label: 'Alamat Sesuai KTP',
+                value: ktp,
+            });
+        }
+
+        return addresses;
+    }
+
+    function renderLivePreviewAddresses(addresses) {
+        if (!addresses.length) {
+            return '<p class="cv-output-contact">Alamat Domisili belum diisi</p>';
+        }
+
+        return addresses.map(function (address) {
+            return '<p class="cv-output-contact"><strong>' + escapeHtml(address.label) + ':</strong> ' + nl2br(escapeHtml(address.value)) + '</p>';
+        }).join('');
     }
 
     function renderLivePreviewSection(title, bodyHtml) {
@@ -2196,6 +2232,10 @@
         return value.split(/\n+/).map(cleanLivePreviewText).filter(function (line) {
             return line !== '';
         }).join('\n');
+    }
+
+    function normalizeLivePreviewAddress(value) {
+        return cleanLivePreviewText(value).toLowerCase();
     }
 
     function formatLivePreviewDate(value) {

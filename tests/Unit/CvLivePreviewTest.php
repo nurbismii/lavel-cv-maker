@@ -154,6 +154,25 @@ class CvLivePreviewTest extends TestCase
         $this->assertStringContainsString('nl2br(e($address[\'value\']))', $template);
     }
 
+    public function test_live_preview_uses_the_shared_domicile_and_ktp_address_rules(): void
+    {
+        $script = $this->script();
+
+        foreach ([
+            "ktp_address: livePreviewFieldValue('ktp_address')",
+            "domicile_same_as_ktp: !!document.querySelector('[data-domicile-same-toggle]:checked')",
+            'function livePreviewAddresses(data)',
+            'function renderLivePreviewAddresses(addresses)',
+            "label: 'Alamat Domisili'",
+            "label: 'Alamat Sesuai KTP'",
+            'Alamat Domisili belum diisi',
+            'normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)',
+            'renderLivePreviewAddresses(livePreviewAddresses(data))',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $script);
+        }
+    }
+
     private function livePreviewSource(string $script): string
     {
         $start = strpos($script, 'function initLivePreview');
