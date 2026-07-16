@@ -23,7 +23,11 @@
                     <span>|</span>
                     {{ $profile->marital_status ?: '-' }}
                 </p>
-                <p class="cv-output-contact">{!! nl2br(e($preview['address'] ?: 'Alamat belum diisi')) !!}</p>
+                @forelse ($preview['addresses'] as $address)
+                    <p class="cv-output-contact"><strong>{{ $address['label'] }}:</strong> {!! nl2br(e($address['value'])) !!}</p>
+                @empty
+                    <p class="cv-output-contact">Alamat Domisili belum diisi</p>
+                @endforelse
                 <p class="cv-output-contact">{{ $profile->phone ?: 'No. HP belum diisi' }} <span>|</span> {{ $profile->email ?: 'Email belum diisi' }}</p>
                 @if (count($socialMediaItems))
                     <p class="cv-output-contact">

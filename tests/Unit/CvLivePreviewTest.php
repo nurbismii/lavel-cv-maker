@@ -145,6 +145,15 @@ class CvLivePreviewTest extends TestCase
         }
     }
 
+    public function test_cv_output_renders_shared_labelled_address_collection(): void
+    {
+        $template = $this->hrisTemplate();
+
+        $this->assertStringContainsString('@forelse ($preview[\'addresses\'] as $address)', $template);
+        $this->assertStringContainsString('{{ $address[\'label\'] }}:', $template);
+        $this->assertStringContainsString('nl2br(e($address[\'value\']))', $template);
+    }
+
     private function livePreviewSource(string $script): string
     {
         $start = strpos($script, 'function initLivePreview');
