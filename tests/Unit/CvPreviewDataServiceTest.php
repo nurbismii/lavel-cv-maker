@@ -28,10 +28,6 @@ class CvPreviewDataServiceTest extends TestCase
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Domisili No. 10\nBlok A",
             ],
-            [
-                'label' => null,
-                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
-            ],
         ], $data['addresses']);
     }
 
@@ -52,15 +48,11 @@ class CvPreviewDataServiceTest extends TestCase
         $this->assertSame([
             [
                 'label' => 'Alamat KTP',
-                'value' => "Jl. KTP No. 20\nRT 02",
+                'value' => "Jl. KTP No. 20\nRT 02\nWawatu, Moramo, Konawe Selatan, Sulawesi Tenggara",
             ],
             [
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Domisili No. 10\nBlok A",
-            ],
-            [
-                'label' => null,
-                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
             ],
         ], $data['addresses']);
     }
@@ -94,10 +86,6 @@ class CvPreviewDataServiceTest extends TestCase
             [
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Merdeka No. 10\nRT 02",
-            ],
-            [
-                'label' => null,
-                'value' => 'Wawatu, Moramo',
             ],
         ], $data['addresses']);
     }
