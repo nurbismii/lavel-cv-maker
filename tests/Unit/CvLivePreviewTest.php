@@ -165,8 +165,7 @@ class CvLivePreviewTest extends TestCase
             'function renderLivePreviewAddresses(addresses)',
             "label: 'Alamat KTP'",
             "label: 'Alamat Domisili'",
-            'label: null',
-            'value: location',
+            "value: location ? ktp + '\\n' + location : ktp",
             'Alamat Domisili belum diisi',
             'normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)',
             'renderLivePreviewAddresses(livePreviewAddresses(data))',
@@ -175,6 +174,8 @@ class CvLivePreviewTest extends TestCase
         }
 
         $this->assertStringNotContainsString("label: 'Kel/Desa, Kec, Kab/Kota, Prov'", $script);
+        $this->assertStringNotContainsString('label: null', $script);
+        $this->assertStringNotContainsString('value: location,', $script);
     }
 
     private function livePreviewSource(string $script): string

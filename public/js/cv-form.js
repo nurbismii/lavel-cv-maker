@@ -2020,7 +2020,7 @@
         if (domicile && ktp && !data.domicile_same_as_ktp && normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)) {
             addresses.push({
                 label: 'Alamat KTP',
-                value: ktp,
+                value: location ? ktp + '\n' + location : ktp,
             });
         }
 
@@ -2028,13 +2028,6 @@
             addresses.push({
                 label: 'Alamat Domisili',
                 value: domicile,
-            });
-        }
-
-        if (domicile && location) {
-            addresses.push({
-                label: null,
-                value: location,
             });
         }
 
