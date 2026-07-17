@@ -106,6 +106,7 @@ class CvPreviewDataService
     private function addresses(CvProfile $profile): array
     {
         $domicileAddress = $this->displayAddress($profile->address);
+        $location = $this->location($profile);
         $ktp = $this->displayAddress($profile->ktp_address);
         $addresses = [];
 
@@ -120,6 +121,13 @@ class CvPreviewDataService
             $addresses[] = [
                 'label' => 'Alamat Domisili',
                 'value' => $domicileAddress,
+            ];
+        }
+
+        if ($domicileAddress && $location) {
+            $addresses[] = [
+                'label' => null,
+                'value' => $location,
             ];
         }
 

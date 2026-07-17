@@ -165,6 +165,8 @@ class CvLivePreviewTest extends TestCase
             'function renderLivePreviewAddresses(addresses)',
             "label: 'Alamat KTP'",
             "label: 'Alamat Domisili'",
+            'label: null',
+            'value: location',
             'Alamat Domisili belum diisi',
             'normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)',
             'renderLivePreviewAddresses(livePreviewAddresses(data))',

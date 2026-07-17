@@ -2013,6 +2013,7 @@
 
     function livePreviewAddresses(data) {
         var domicile = cleanLivePreviewMultilineText(data.address);
+        var location = cleanLivePreviewText(data.location);
         var ktp = cleanLivePreviewMultilineText(data.ktp_address);
         var addresses = [];
 
@@ -2030,6 +2031,13 @@
             });
         }
 
+        if (domicile && location) {
+            addresses.push({
+                label: null,
+                value: location,
+            });
+        }
+
         return addresses;
     }
 
@@ -2039,7 +2047,9 @@
         }
 
         return addresses.map(function (address) {
-            return '<p class="cv-output-contact"><strong>' + escapeHtml(address.label) + ':</strong> ' + nl2br(escapeHtml(address.value)) + '</p>';
+            var label = address.label ? '<strong>' + escapeHtml(address.label) + ':</strong> ' : '';
+
+            return '<p class="cv-output-contact">' + label + nl2br(escapeHtml(address.value)) + '</p>';
         }).join('');
     }
 

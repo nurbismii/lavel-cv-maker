@@ -24,7 +24,7 @@
                     {{ $profile->marital_status ?: '-' }}
                 </p>
                 @forelse ($preview['addresses'] as $address)
-                    <p class="cv-output-contact"><strong>{{ $address['label'] }}:</strong> {!! nl2br(e($address['value'])) !!}</p>
+                    <p class="cv-output-contact">@if ($address['label'])<strong>{{ $address['label'] }}:</strong> @endif{!! nl2br(e($address['value'])) !!}</p>
                 @empty
                     <p class="cv-output-contact">Alamat Domisili belum diisi</p>
                 @endforelse
