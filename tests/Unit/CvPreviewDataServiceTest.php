@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class CvPreviewDataServiceTest extends TestCase
 {
-    public function test_it_returns_domicile_then_location_when_addresses_are_the_same()
+    public function test_it_returns_only_domicile_when_addresses_are_the_same()
     {
         $profile = $this->profile([
             'address' => "Jl. Domisili No. 10\nBlok A",
@@ -28,14 +28,10 @@ class CvPreviewDataServiceTest extends TestCase
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Domisili No. 10\nBlok A",
             ],
-            [
-                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
-                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
-            ],
         ], $data['addresses']);
     }
 
-    public function test_it_returns_ktp_domicile_then_location_when_addresses_are_different()
+    public function test_it_returns_ktp_then_domicile_when_addresses_are_different()
     {
         $profile = $this->profile([
             'address' => "Jl. Domisili No. 10\nBlok A",
@@ -57,10 +53,6 @@ class CvPreviewDataServiceTest extends TestCase
             [
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Domisili No. 10\nBlok A",
-            ],
-            [
-                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
-                'value' => 'Wawatu, Moramo, Konawe Selatan, Sulawesi Tenggara',
             ],
         ], $data['addresses']);
     }
@@ -94,10 +86,6 @@ class CvPreviewDataServiceTest extends TestCase
             [
                 'label' => 'Alamat Domisili',
                 'value' => "Jl. Merdeka No. 10\nRT 02",
-            ],
-            [
-                'label' => 'Kel/Desa, Kec, Kab/Kota, Prov',
-                'value' => 'Wawatu, Moramo',
             ],
         ], $data['addresses']);
     }

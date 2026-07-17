@@ -2013,7 +2013,6 @@
 
     function livePreviewAddresses(data) {
         var domicile = cleanLivePreviewMultilineText(data.address);
-        var location = cleanLivePreviewText(data.location);
         var ktp = cleanLivePreviewMultilineText(data.ktp_address);
         var addresses = [];
 
@@ -2028,13 +2027,6 @@
             addresses.push({
                 label: 'Alamat Domisili',
                 value: domicile,
-            });
-        }
-
-        if (domicile && location) {
-            addresses.push({
-                label: 'Kel/Desa, Kec, Kab/Kota, Prov',
-                value: location,
             });
         }
 

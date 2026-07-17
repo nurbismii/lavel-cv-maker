@@ -154,7 +154,7 @@ class CvLivePreviewTest extends TestCase
         $this->assertStringContainsString('nl2br(e($address[\'value\']))', $template);
     }
 
-    public function test_live_preview_uses_the_shared_ktp_domicile_and_location_address_rules(): void
+    public function test_live_preview_uses_the_shared_ktp_and_domicile_address_rules(): void
     {
         $script = $this->script();
 
@@ -165,13 +165,14 @@ class CvLivePreviewTest extends TestCase
             'function renderLivePreviewAddresses(addresses)',
             "label: 'Alamat KTP'",
             "label: 'Alamat Domisili'",
-            "label: 'Kel/Desa, Kec, Kab/Kota, Prov'",
             'Alamat Domisili belum diisi',
             'normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)',
             'renderLivePreviewAddresses(livePreviewAddresses(data))',
         ] as $expected) {
             $this->assertStringContainsString($expected, $script);
         }
+
+        $this->assertStringNotContainsString("label: 'Kel/Desa, Kec, Kab/Kota, Prov'", $script);
     }
 
     private function livePreviewSource(string $script): string
