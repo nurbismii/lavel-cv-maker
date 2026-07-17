@@ -13,6 +13,7 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+/.worktrees
 CV_HRIS_Functional_Rules.md
 DESIGN.md
 /docs
