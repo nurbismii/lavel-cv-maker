@@ -144,6 +144,10 @@ $currentJobExperience = [
 ];
 $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($profile->updated_at)->timestamp : null;
 $documentOptions = \App\Models\CvDocument::documentOptions();
+$documentGroups = [
+    'administrative' => ['title' => 'Dokumen Administrasi', 'options' => collect($documentOptions)->where('group', 'administrative')],
+    'skills' => ['title' => 'Sertifikat Keahlian', 'options' => collect($documentOptions)->where('group', 'skills')],
+];
 $documentsByType = $profile->documents->keyBy('type');
 $completionItems = collect([
 ['label' => 'Tempat lahir', 'done' => (bool) $profile->birth_place],
@@ -320,6 +324,16 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <input type="text" name="family_card_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('family_card_number') is-invalid @enderror" value="{{ old('family_card_number', $profile->family_card_number) }}" placeholder="16 digit No. KK">
                                             @error('family_card_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label" for="bank_account_number">No. Rekening</label>
+                                            <input id="bank_account_number" type="number" name="bank_account_number" inputmode="numeric" pattern="[0-9]*" maxlength="34" class="form-control @error('bank_account_number') is-invalid @enderror" value="{{ old('bank_account_number', $profile->bank_account_number) }}" placeholder="Nomor rekening">
+                                            @error('bank_account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label" for="npwp_number">No. NPWP</label>
+                                            <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="20" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
+                                            @error('npwp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Foto CV</label>
@@ -893,8 +907,10 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         <div>Pastikan file KTP, KK, dan ijazah terbaca jelas. Format yang diterima PDF, JPG, JPEG, atau PNG maksimal 5MB per file.</div>
                     </div>
 
+                    @foreach ($documentGroups as $documentGroup)
+                    <h3 class="h6 mt-4 mb-3">{{ $documentGroup['title'] }}</h3>
                     <div class="cv-document-grid">
-                        @foreach ($documentOptions as $documentType => $documentOption)
+                        @foreach ($documentGroup['options'] as $documentType => $documentOption)
                         @php
                         $document = $documentsByType->get($documentType);
                         $documentErrorKey = 'documents.' . $documentType;
@@ -959,6 +975,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         </section>
                         @endforeach
                     </div>
+                    @endforeach
                 </div>
             </div>
 

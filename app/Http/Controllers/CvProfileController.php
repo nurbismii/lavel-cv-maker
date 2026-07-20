@@ -212,6 +212,8 @@ class CvProfileController extends Controller
                     'birth_date' => $request->input('birth_date'),
                     'ktp_number' => $this->digitsOnly($request->input('ktp_number')),
                     'family_card_number' => $this->digitsOnly($request->input('family_card_number')),
+                    'bank_account_number' => $this->digitsOnly($request->input('bank_account_number')),
+                    'npwp_number' => $this->digitsOnly($request->input('npwp_number')),
                     'birth_place' => $request->input('birth_place'),
                     'gender' => $request->input('gender'),
                     'height_cm' => $request->filled('height_cm') ? (int) $request->input('height_cm') : null,

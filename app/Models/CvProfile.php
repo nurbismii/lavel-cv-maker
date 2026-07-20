@@ -33,6 +33,8 @@ class CvProfile extends Model
         'birth_date',
         'ktp_number',
         'family_card_number',
+        'bank_account_number',
+        'npwp_number',
         'gender',
         'height_cm',
         'weight_kg',

@@ -104,6 +104,43 @@
         return highest;
     }
 
+    function digitsOnly(value) {
+        return String(value || '').replace(/\D/g, '');
+    }
+
+    function formatNpwpInput(input) {
+        if (!input) {
+            return;
+        }
+
+        var digits = digitsOnly(input.value).slice(0, 16);
+        var ktpInput = document.querySelector(input.dataset.ktpNumberInput || "[name='ktp_number']");
+        var ktpDigits = digitsOnly(ktpInput ? ktpInput.value : '');
+
+        if (digits.length === 16 && digits === ktpDigits) {
+            input.value = digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+            return;
+        }
+
+        digits = digits.slice(0, 15);
+        var parts = [
+            digits.slice(0, 2),
+            digits.slice(2, 5),
+            digits.slice(5, 8),
+            digits.slice(8, 9),
+            digits.slice(9, 12),
+            digits.slice(12, 15),
+        ];
+
+        input.value = parts[0];
+
+        if (parts[1]) input.value += '.' + parts[1];
+        if (parts[2]) input.value += '.' + parts[2];
+        if (parts[3]) input.value += '.' + parts[3];
+        if (parts[4]) input.value += '-' + parts[4];
+        if (parts[5]) input.value += '.' + parts[5];
+    }
+
     function uniqueIndex() {
         if (repeatIndex === null) {
             repeatIndex = highestRepeatIndex() + 1;
@@ -2695,6 +2732,10 @@
     });
 
     document.addEventListener('input', function (event) {
+        if (event.target.matches('[data-npwp-input], [name="ktp_number"]')) {
+            formatNpwpInput(document.querySelector('[data-npwp-input]'));
+        }
+
         if (event.target.matches('#cvForm input, #cvForm textarea, #cvForm select')) {
             clearFieldWizardError(event.target);
             refreshWizardAccessState();
@@ -2737,6 +2778,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', function () {
+        formatNpwpInput(document.querySelector('[data-npwp-input]'));
         applyCurrentToggles(document);
         syncCopyCurrentJobToggleAvailability();
         initOrganizationFields();

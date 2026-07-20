@@ -55,6 +55,35 @@ class CvDocumentTest extends TestCase
         Storage::disk('local')->assertExists($document->file_path);
     }
 
+    public function test_employee_can_save_bank_account_number_and_upload_skill_certificate()
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'bank_account_number' => '001234567890',
+            'npwp_number' => '12.345.678.9-012.345',
+            'documents' => [
+                'sim_b2_umum' => UploadedFile::fake()->create('sim-b2.pdf', 120, 'application/pdf'),
+            ],
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $profileId = DB::table('cv_profiles')->where('user_id', $user->id)->value('id');
+        $this->assertDatabaseHas('cv_profiles', [
+            'id' => $profileId,
+            'bank_account_number' => '001234567890',
+            'npwp_number' => '123456789012345',
+        ]);
+        $this->assertDatabaseHas('cv_documents', [
+            'cv_profile_id' => $profileId,
+            'type' => 'sim_b2_umum',
+            'original_name' => 'sim-b2.pdf',
+        ]);
+    }
+
     public function test_employee_can_view_own_document_inline()
     {
         Storage::fake('local');
@@ -253,6 +282,8 @@ class CvDocumentTest extends TestCase
             $table->date('birth_date')->nullable();
             $table->string('ktp_number')->nullable();
             $table->string('family_card_number')->nullable();
+            $table->string('bank_account_number', 34)->nullable();
+            $table->string('npwp_number', 16)->nullable();
             $table->string('gender', 8)->nullable();
             $table->unsignedSmallInteger('height_cm')->nullable();
             $table->decimal('weight_kg', 5, 2)->nullable();

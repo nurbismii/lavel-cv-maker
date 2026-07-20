@@ -33,6 +33,8 @@ class SaveCvProfileRequest extends FormRequest
             'birth_date' => ['required', 'date'],
             'ktp_number' => ['nullable', 'digits:16'],
             'family_card_number' => ['nullable', 'digits:16'],
+            'bank_account_number' => ['nullable', 'string', 'regex:/^[0-9]{5,34}$/'],
+            'npwp_number' => ['nullable', 'digits_between:15,16'],
             'birth_place' => ['nullable', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
@@ -130,6 +132,8 @@ class SaveCvProfileRequest extends FormRequest
             'birth_date.date' => 'Format tanggal lahir tidak valid.',
             'ktp_number.digits' => 'No. KTP harus berisi 16 digit angka.',
             'family_card_number.digits' => 'No. KK harus berisi 16 digit angka.',
+            'bank_account_number.regex' => 'No. rekening harus berisi 5 sampai 34 digit angka.',
+            'npwp_number.digits_between' => 'No. NPWP harus berisi 15 digit, atau 16 digit jika menggunakan No. KTP.',
             'religion.in' => 'Agama yang dipilih tidak valid.',
             'marriage_date.date' => 'Format tanggal pernikahan tidak valid.',
             'children_names.max' => 'Nama anak maksimal 3 orang.',
@@ -157,6 +161,13 @@ class SaveCvProfileRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            $npwpNumber = (string) $this->input('npwp_number');
+            $ktpNumber = preg_replace('/\D+/', '', (string) $this->input('ktp_number'));
+
+            if (strlen($npwpNumber) === 16 && $npwpNumber !== $ktpNumber) {
+                $validator->errors()->add('npwp_number', 'No. NPWP 16 digit hanya dapat digunakan jika sama dengan No. KTP.');
+            }
+
             foreach ((array) $this->file('documents', []) as $type => $file) {
                 if (!CvDocument::isAllowedType((string) $type)) {
                     $validator->errors()->add("documents.{$type}", 'Jenis dokumen karyawan tidak valid.');
@@ -191,5 +202,14 @@ class SaveCvProfileRequest extends FormRequest
                 }
             }
         });
+    }
+
+    protected function prepareForValidation()
+    {
+        $npwpNumber = preg_replace('/\D+/', '', (string) $this->input('npwp_number'));
+
+        $this->merge([
+            'npwp_number' => $npwpNumber ?: null,
+        ]);
     }
 }
