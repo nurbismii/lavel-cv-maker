@@ -43,6 +43,13 @@ class CvDocument extends Model
         self::TYPE_SECURITY_KTA => 'KTA Security',
     ];
 
+    public const MULTIPLE_FILE_TYPES = [
+        self::TYPE_DIPLOMA,
+        self::TYPE_WORK_EXPERIENCE,
+        self::TYPE_CERTIFICATE,
+        self::TYPE_K3_CERTIFICATE,
+    ];
+
     protected $fillable = [
         'cv_profile_id',
         'type',
@@ -65,6 +72,11 @@ class CvDocument extends Model
     public static function isAllowedType(string $type): bool
     {
         return array_key_exists($type, self::TYPES);
+    }
+
+    public static function acceptsMultipleFiles(string $type): bool
+    {
+        return in_array($type, self::MULTIPLE_FILE_TYPES, true);
     }
 
     public static function labelFor(?string $type): string

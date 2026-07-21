@@ -28,7 +28,7 @@ class SaveCvProfileRequest extends FormRequest
      */
     public function rules()
     {
-        return [
+        return array_merge([
             'full_name' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
             'ktp_number' => ['nullable', 'digits:16'],
@@ -39,9 +39,8 @@ class SaveCvProfileRequest extends FormRequest
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'documents' => ['nullable', 'array'],
-            'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remove_documents' => ['nullable', 'array'],
-            'remove_documents.*' => ['nullable', 'boolean'],
+            'remove_documents.*' => ['nullable'],
             'gender' => ['nullable', 'in:L,P'],
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
             'weight_kg' => ['nullable', 'numeric', 'min:20', 'max:300'],
@@ -119,7 +118,7 @@ class SaveCvProfileRequest extends FormRequest
             'organizations.*.role' => ['nullable', 'string', 'max:255'],
             'organizations.*.start_year' => ['nullable', 'integer', 'min:1900', 'max:' . (((int) date('Y')) + 1)],
             'organizations.*.end_year' => ['nullable', 'integer', 'min:1900', 'max:' . (((int) date('Y')) + 1)],
-        ];
+        ], $this->documentRules());
     }
 
     public function messages()
@@ -156,6 +155,25 @@ class SaveCvProfileRequest extends FormRequest
             '*.date_format' => 'Format bulan/tahun tidak valid.',
             '*.max' => 'Input melebihi batas karakter yang diperbolehkan.',
         ];
+    }
+
+    protected function documentRules(): array
+    {
+        $rules = [];
+
+        foreach (CvDocument::allowedTypes() as $type) {
+            if (CvDocument::acceptsMultipleFiles($type)) {
+                $rules['documents.' . $type] = ['nullable', 'array', 'max:10'];
+                $rules['documents.' . $type . '.*'] = ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+                $rules['remove_documents.' . $type] = ['nullable', 'array'];
+                $rules['remove_documents.' . $type . '.*'] = ['nullable', 'boolean'];
+            } else {
+                $rules['documents.' . $type] = ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+                $rules['remove_documents.' . $type] = ['nullable', 'boolean'];
+            }
+        }
+
+        return $rules;
     }
 
     public function withValidator($validator)

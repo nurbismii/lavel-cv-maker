@@ -192,7 +192,13 @@ class CvProfileController extends Controller
         $locationSelection = $this->resolveLocationSelection($request, $locationService);
         [$photoPath, $oldPhotoPath, $newPhotoPath] = $this->preparePhotoUpdate($request, $profile);
         $documentUploads = $this->prepareDocumentUploads($request, $profile);
-        $newDocumentPaths = array_column($documentUploads, 'file_path');
+        $newDocumentPaths = [];
+
+        foreach ($documentUploads as $uploads) {
+            foreach ($uploads as $upload) {
+                $newDocumentPaths[] = $upload['file_path'];
+            }
+        }
         $oldDocumentPaths = [];
 
         try {
@@ -304,17 +310,29 @@ class CvProfileController extends Controller
         foreach ((array) $request->file('documents', []) as $type => $file) {
             $type = (string) $type;
 
-            if (!$file || !$file->isValid() || !CvDocument::isAllowedType($type)) {
+            if (!CvDocument::isAllowedType($type)) {
                 continue;
             }
 
-            $uploads[$type] = [
-                'type' => $type,
-                'original_name' => $file->getClientOriginalName(),
-                'file_path' => $file->store('cv-documents/' . $profile->user_id, 'local'),
-                'mime_type' => $file->getClientMimeType(),
-                'file_size' => $file->getSize(),
-            ];
+            $files = is_array($file) ? $file : [$file];
+
+            if (!CvDocument::acceptsMultipleFiles($type)) {
+                $files = array_slice($files, 0, 1);
+            }
+
+            foreach ($files as $uploadedFile) {
+                if (!$uploadedFile || !$uploadedFile->isValid()) {
+                    continue;
+                }
+
+                $uploads[$type][] = [
+                    'type' => $type,
+                    'original_name' => $uploadedFile->getClientOriginalName(),
+                    'file_path' => $uploadedFile->store('cv-documents/' . $profile->user_id, 'local'),
+                    'mime_type' => $uploadedFile->getClientMimeType(),
+                    'file_size' => $uploadedFile->getSize(),
+                ];
+            }
         }
 
         return $uploads;
@@ -610,25 +628,40 @@ class CvProfileController extends Controller
         $removeDocuments = (array) $request->input('remove_documents', []);
 
         foreach (CvDocument::allowedTypes() as $type) {
-            $existing = $profile->documents()->where('type', $type)->first();
+            $existingDocuments = $profile->documents()->where('type', $type)->get();
+            $existing = $existingDocuments->first();
 
             if (isset($uploads[$type])) {
-                if ($existing) {
+                if (CvDocument::acceptsMultipleFiles($type)) {
+                    foreach ($uploads[$type] as $upload) {
+                        CvDocument::create(array_merge($upload, [
+                            'cv_profile_id' => $profile->id,
+                            'uploaded_at' => now(),
+                        ]));
+                    }
+                } elseif ($existing) {
                     $pathsToDelete[] = $existing->file_path;
-                    $existing->update(array_merge($uploads[$type], [
+                    $existing->update(array_merge($uploads[$type][0], [
                         'uploaded_at' => now(),
                     ]));
+                    continue;
                 } else {
-                    CvDocument::create(array_merge($uploads[$type], [
+                    CvDocument::create(array_merge($uploads[$type][0], [
                         'cv_profile_id' => $profile->id,
                         'uploaded_at' => now(),
                     ]));
+                    continue;
                 }
-
-                continue;
             }
 
-            if (!empty($removeDocuments[$type]) && $existing) {
+            if (CvDocument::acceptsMultipleFiles($type)) {
+                foreach ($existingDocuments as $document) {
+                    if (!empty($removeDocuments[$type][$document->id])) {
+                        $pathsToDelete[] = $document->file_path;
+                        $document->delete();
+                    }
+                }
+            } elseif (!empty($removeDocuments[$type]) && $existing) {
                 $pathsToDelete[] = $existing->file_path;
                 $existing->delete();
             }

@@ -55,6 +55,33 @@ class CvDocumentTest extends TestCase
         Storage::disk('local')->assertExists($document->file_path);
     }
 
+    public function test_employee_can_upload_multiple_files_for_certificate_document_types()
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'documents' => [
+                'certificate' => [
+                    UploadedFile::fake()->create('pelatihan-a.pdf', 120, 'application/pdf'),
+                    UploadedFile::fake()->create('pelatihan-b.pdf', 120, 'application/pdf'),
+                ],
+                'k3_certificate' => [
+                    UploadedFile::fake()->create('k3-a.pdf', 120, 'application/pdf'),
+                    UploadedFile::fake()->create('k3-b.pdf', 120, 'application/pdf'),
+                ],
+            ],
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $profileId = DB::table('cv_profiles')->where('user_id', $user->id)->value('id');
+
+        $this->assertSame(2, DB::table('cv_documents')->where('cv_profile_id', $profileId)->where('type', 'certificate')->count());
+        $this->assertSame(2, DB::table('cv_documents')->where('cv_profile_id', $profileId)->where('type', 'k3_certificate')->count());
+    }
+
     public function test_employee_can_save_bank_account_number_and_upload_skill_certificate()
     {
         Storage::fake('local');

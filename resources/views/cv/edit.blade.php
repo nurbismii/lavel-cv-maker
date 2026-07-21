@@ -144,11 +144,23 @@ $currentJobExperience = [
 ];
 $photoUrl = $profile->photo_path ? route('cv.photo.show') . '?v=' . optional($profile->updated_at)->timestamp : null;
 $documentOptions = \App\Models\CvDocument::documentOptions();
-$documentGroups = [
-    'administrative' => ['title' => 'Dokumen Administrasi', 'options' => collect($documentOptions)->where('group', 'administrative')],
-    'skills' => ['title' => 'Sertifikat Keahlian', 'options' => collect($documentOptions)->where('group', 'skills')],
+$linkedDocumentTypes = [
+\App\Models\CvDocument::TYPE_KTP,
+\App\Models\CvDocument::TYPE_FAMILY_CARD,
+\App\Models\CvDocument::TYPE_NPWP,
+\App\Models\CvDocument::TYPE_BIRTH_CERTIFICATE,
+\App\Models\CvDocument::TYPE_MARRIAGE_BOOK,
+\App\Models\CvDocument::TYPE_DIVORCE_CERTIFICATE,
+\App\Models\CvDocument::TYPE_DIPLOMA,
+\App\Models\CvDocument::TYPE_WORK_EXPERIENCE,
+\App\Models\CvDocument::TYPE_CERTIFICATE,
+\App\Models\CvDocument::TYPE_K3_CERTIFICATE,
 ];
-$documentsByType = $profile->documents->keyBy('type');
+$documentGroups = [
+'administrative' => ['title' => 'Dokumen Administrasi Lainnya', 'options' => collect($documentOptions)->where('group', 'administrative')->except($linkedDocumentTypes)],
+'skills' => ['title' => 'Sertifikat Keahlian Lainnya', 'options' => collect($documentOptions)->where('group', 'skills')->except($linkedDocumentTypes)],
+];
+$documentsByType = $profile->documents->groupBy('type');
 $completionItems = collect([
 ['label' => 'Tempat lahir', 'done' => (bool) $profile->birth_place],
 ['label' => 'Ringkasan profil', 'done' => (bool) $profile->profile_summary],
@@ -313,27 +325,42 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <input type="text" class="form-control readonly-field" value="{{ $vpeopleNik ?: 'Tersimpan aman' }}" readonly>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">No. KTP</label>
-                                            <span class="badge badge-vpeople ms-1">V-People</span>
-                                            <input type="text" name="ktp_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('ktp_number') is-invalid @enderror" value="{{ old('ktp_number', $profile->ktp_number) }}" placeholder="16 digit No. KTP">
-                                            @error('ktp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <div class="col-12">
+                                            <div class="cv-field-with-document">
+                                                <div class="mb-2">
+                                                    <label class="form-label">No. KTP</label>
+                                                    <span class="badge badge-vpeople ms-1">V-People</span>
+                                                    <input type="text" name="ktp_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('ktp_number') is-invalid @enderror" value="{{ old('ktp_number', $profile->ktp_number) }}" placeholder="16 digit No. KTP">
+                                                    @error('ktp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                                </div>
+                                                @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_KTP])
+                                            </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">No. KK</label>
-                                            <span class="badge badge-vpeople ms-1">V-People</span>
-                                            <input type="text" name="family_card_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('family_card_number') is-invalid @enderror" value="{{ old('family_card_number', $profile->family_card_number) }}" placeholder="16 digit No. KK">
-                                            @error('family_card_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <div class="col-12">
+                                            <div class="cv-field-with-document">
+                                                <div class="mb-2">
+                                                    <label class="form-label">No. KK</label>
+                                                    <span class="badge badge-vpeople ms-1">V-People</span>
+                                                    <input type="text" name="family_card_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('family_card_number') is-invalid @enderror" value="{{ old('family_card_number', $profile->family_card_number) }}" placeholder="16 digit No. KK">
+                                                    @error('family_card_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                                </div>
+                                                @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_FAMILY_CARD])
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label" for="bank_account_number">No. Rekening</label>
                                             <input id="bank_account_number" type="number" name="bank_account_number" inputmode="numeric" pattern="[0-9]*" maxlength="34" class="form-control @error('bank_account_number') is-invalid @enderror" value="{{ old('bank_account_number', $profile->bank_account_number) }}" placeholder="Nomor rekening">
                                             @error('bank_account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="npwp_number">No. NPWP</label>
-                                            <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="20" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
-                                            @error('npwp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <div class="col-12">
+                                            <div class="cv-field-with-document">
+                                                <div class="mb-2">
+                                                    <label class="form-label" for="npwp_number">No. NPWP</label>
+                                                    <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="20" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
+                                                    @error('npwp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                                </div>
+                                                @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_NPWP])
+                                            </div>
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Foto CV</label>
@@ -363,10 +390,15 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label cv-required-label">Tempat Lahir <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
-                                            <input type="text" name="birth_place" class="form-control @error('birth_place') is-invalid @enderror" value="{{ old('birth_place', $profile->birth_place) }}" placeholder="Contoh: Kendari">
-                                            @error('birth_place') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <div class="col-12">
+                                            <div class="cv-field-with-document">
+                                                <div class="mb-2">
+                                                    <label class="form-label cv-required-label">Tempat Lahir <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
+                                                    <input type="text" name="birth_place" class="form-control @error('birth_place') is-invalid @enderror" value="{{ old('birth_place', $profile->birth_place) }}" placeholder="Contoh: Kendari">
+                                                    @error('birth_place') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                                </div>
+                                                @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_BIRTH_CERTIFICATE])
+                                            </div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label cv-required-label">Tanggal Lahir <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
@@ -438,6 +470,18 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                                 @endif
                                             </select>
                                             @error('marital_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="cv-field-with-document">
+                                                <div class="cv-field-card mb-2">
+                                                    <span class="form-label d-block">Dokumen Status Pernikahan</span>
+                                                    <p class="text-muted small mb-0">Upload buku nikah atau surat cerai sesuai status pernikahan Anda.</p>
+                                                </div>
+                                                <div class="d-grid gap-3">
+                                                    @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_MARRIAGE_BOOK])
+                                                    @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_DIVORCE_CERTIFICATE])
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </section>
@@ -781,6 +825,9 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                             <i class="bi bi-plus-lg me-1"></i> Tambah Pendidikan
                         </button>
                     </div>
+                    <div class="mt-4">
+                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_DIPLOMA])
+                    </div>
                 </div>
             </div>
 
@@ -800,6 +847,9 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="experiences" data-guide-target="add-experience" data-bs-toggle="tooltip" data-bs-title="Jika memiliki pengalaman kerja lebih dari satu, gunakan tombol ini untuk menambah baris pengalaman.">
                             <i class="bi bi-plus-lg me-1"></i> Tambah Pengalaman
                         </button>
+                    </div>
+                    <div class="mt-4">
+                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_WORK_EXPERIENCE])
                     </div>
                 </div>
             </div>
@@ -838,6 +888,12 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="certifications" data-bs-toggle="tooltip" data-bs-title="Tambah sertifikasi atau pelatihan lain jika jumlahnya lebih dari satu.">
                             <i class="bi bi-plus-lg me-1"></i> Tambah Sertifikasi/Pelatihan
                         </button>
+                    </div>
+                    <div class="mt-4 cv-field-with-document mb-2">
+                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_CERTIFICATE])
+                    </div>
+                    <div class="cv-field-with-document">
+                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_K3_CERTIFICATE])
                     </div>
                 </div>
             </div>
@@ -912,7 +968,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                     <div class="cv-document-grid">
                         @foreach ($documentGroup['options'] as $documentType => $documentOption)
                         @php
-                        $document = $documentsByType->get($documentType);
+                        $document = $documentsByType->get($documentType, collect())->first();
                         $documentErrorKey = 'documents.' . $documentType;
                         $removeDocumentId = 'remove_document_' . $documentType;
                         $documentSize = $document && $document->file_size ? number_format($document->file_size / 1024, 0) . ' KB' : null;

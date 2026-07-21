@@ -1462,7 +1462,10 @@
     }
 
     function validateDocumentsWizardPanel(panel, options, errors) {
-        panel.querySelectorAll('[data-document-required="1"]').forEach(function (card) {
+        var form = panel ? panel.closest('form') : null;
+        var documentScope = form || panel;
+
+        documentScope.querySelectorAll('[data-document-required="1"]').forEach(function (card) {
             var input = card.querySelector('input[type="file"]');
             var label = card.dataset.documentLabel || 'Dokumen wajib HR';
 
@@ -2604,6 +2607,44 @@
         }
     }
 
+    function addDocumentFileInput(button) {
+        var card = button.closest('.cv-linked-document');
+        var list = card ? card.querySelector('[data-document-file-input-list]') : null;
+        var template = list ? list.querySelector('[data-document-file-input-item]') : null;
+
+        if (!list || !template) {
+            return;
+        }
+
+        var item = template.cloneNode(true);
+        var input = item.querySelector('[data-document-file-input]');
+
+        if (input) {
+            input.value = '';
+            input.removeAttribute('id');
+            input.classList.remove('is-invalid');
+        }
+
+        list.appendChild(item);
+    }
+
+    function removeDocumentFileInput(button) {
+        var item = button.closest('[data-document-file-input-item]');
+        var list = item ? item.closest('[data-document-file-input-list]') : null;
+        var input = item ? item.querySelector('[data-document-file-input]') : null;
+
+        if (!item || !list || !input) {
+            return;
+        }
+
+        if (list.querySelectorAll('[data-document-file-input-item]').length === 1) {
+            input.value = '';
+            return;
+        }
+
+        item.remove();
+    }
+
     document.addEventListener('click', function (event) {
         var livePreviewToggle = event.target.closest('[data-live-preview-toggle]');
         var guideButton = event.target.closest('[data-guide-start]');
@@ -2612,6 +2653,20 @@
         var wizardNextButton = event.target.closest('[data-wizard-next]');
         var addButton = event.target.closest('[data-repeat-add]');
         var removeButton = event.target.closest('[data-repeat-remove]');
+        var documentFileAddButton = event.target.closest('[data-document-file-add]');
+        var documentFileRemoveButton = event.target.closest('[data-document-file-remove]');
+
+        if (documentFileAddButton) {
+            event.preventDefault();
+            addDocumentFileInput(documentFileAddButton);
+            return;
+        }
+
+        if (documentFileRemoveButton) {
+            event.preventDefault();
+            removeDocumentFileInput(documentFileRemoveButton);
+            return;
+        }
 
         if (livePreviewToggle) {
             event.preventDefault();
