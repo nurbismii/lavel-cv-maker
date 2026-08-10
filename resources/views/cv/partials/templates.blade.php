@@ -25,3 +25,7 @@
 <template data-repeat-template="organizations">
     @include('cv.partials.organization-row', ['index' => '__INDEX__', 'item' => [], 'yearOptions' => $yearOptions])
 </template>
+
+<template data-repeat-template="achievements">
+    @include('cv.partials.achievement-row', ['index' => '__INDEX__', 'item' => [], 'achievementFieldOptions' => $achievementFieldOptions, 'achievementLevelOptions' => $achievementLevelOptions])
+</template>

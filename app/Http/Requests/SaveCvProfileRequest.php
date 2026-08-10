@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\CvEmergencyContact;
 use App\Models\CvDocument;
+use App\Models\CvAchievement;
 use App\Models\CvProfile;
 use App\Services\VPeopleOrganizationService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -75,6 +76,21 @@ class SaveCvProfileRequest extends FormRequest
             'profile_summary' => ['nullable', 'string', 'max:300'],
             'technical_skills' => ['nullable', 'string', 'max:1000'],
             'non_technical_skills' => ['nullable', 'string', 'max:1000'],
+            'hobbies' => ['nullable', 'array', 'max:' . count(CvProfile::INTEREST_OPTIONS)],
+            'hobbies.*' => ['nullable', 'string', 'max:255'],
+            'other_hobby' => ['nullable', 'string', 'max:255'],
+            'talents' => ['nullable', 'array', 'max:' . count(CvProfile::INTEREST_OPTIONS)],
+            'talents.*' => ['nullable', 'string', 'max:255'],
+            'other_talent' => ['nullable', 'string', 'max:255'],
+
+            'achievements' => ['nullable', 'array', 'max:20'],
+            'achievements.*.field' => ['nullable', 'string', Rule::in(array_keys(CvAchievement::FIELD_OPTIONS))],
+            'achievements.*.other_field' => ['nullable', 'string', 'max:255'],
+            'achievements.*.achievement_type' => ['nullable', 'string', 'max:255'],
+            'achievements.*.rank' => ['nullable', 'string', 'max:100'],
+            'achievements.*.level' => ['nullable', 'string', Rule::in(array_keys(CvAchievement::LEVEL_OPTIONS))],
+            'achievements.*.other_level' => ['nullable', 'string', 'max:255'],
+            'achievements.*.period' => ['nullable', 'date_format:Y-m'],
 
             'emergency_contacts' => ['nullable', 'array'],
             'emergency_contacts.*.phone' => ['nullable', 'digits_between:10,13'],
@@ -152,6 +168,10 @@ class SaveCvProfileRequest extends FormRequest
             'weight_kg.max' => 'Berat badan maksimal 300 kg.',
             'blood_type.in' => 'Golongan darah yang dipilih tidak valid.',
             'profile_summary.max' => 'Ringkasan profil maksimal 300 karakter.',
+            'achievements.max' => 'Prestasi maksimal 20 entri.',
+            'achievements.*.field.in' => 'Bidang prestasi tidak valid.',
+            'achievements.*.level.in' => 'Tingkat prestasi tidak valid.',
+            'achievements.*.period.date_format' => 'Periode prestasi harus menggunakan format bulan dan tahun.',
             '*.date_format' => 'Format bulan/tahun tidak valid.',
             '*.max' => 'Input melebihi batas karakter yang diperbolehkan.',
         ];
@@ -219,7 +239,69 @@ class SaveCvProfileRequest extends FormRequest
                     $validator->errors()->add("emergency_contacts.{$index}.relationship", 'Hubungan kontak darurat wajib dipilih.');
                 }
             }
+
+            $this->validateInterestKeys($validator, 'hobbies', 'Hobi');
+            $this->validateInterestKeys($validator, 'talents', 'Bakat');
+
+            foreach ((array) $this->input('achievements', []) as $index => $achievement) {
+                if (!$this->achievementHasValue($achievement)) {
+                    continue;
+                }
+
+                $requiredFields = [
+                    'field' => 'Bidang prestasi',
+                    'achievement_type' => 'Nama/jenis prestasi',
+                    'rank' => 'Peringkat prestasi',
+                    'level' => 'Tingkat prestasi',
+                    'period' => 'Periode prestasi',
+                ];
+
+                foreach ($requiredFields as $field => $label) {
+                    if (trim((string) ($achievement[$field] ?? '')) === '') {
+                        $validator->errors()->add("achievements.{$index}.{$field}", "{$label} wajib diisi.");
+                    }
+                }
+
+                if (($achievement['field'] ?? null) === 'other' && trim((string) ($achievement['other_field'] ?? '')) === '') {
+                    $validator->errors()->add("achievements.{$index}.other_field", 'Bidang prestasi lainnya wajib diisi.');
+                }
+
+                if (($achievement['level'] ?? null) === 'other' && trim((string) ($achievement['other_level'] ?? '')) === '') {
+                    $validator->errors()->add("achievements.{$index}.other_level", 'Tingkat prestasi lainnya wajib diisi.');
+                }
+            }
         });
+    }
+
+    private function validateInterestKeys($validator, string $field, string $label): void
+    {
+        $details = $this->input($field, []);
+
+        if (!is_array($details)) {
+            return;
+        }
+
+        foreach (array_keys($details) as $key) {
+            if (!array_key_exists((string) $key, CvProfile::INTEREST_OPTIONS)) {
+                $validator->errors()->add($field, "Kategori {$label} tidak valid.");
+                break;
+            }
+        }
+    }
+
+    private function achievementHasValue($achievement): bool
+    {
+        if (!is_array($achievement)) {
+            return false;
+        }
+
+        foreach (['field', 'other_field', 'achievement_type', 'rank', 'level', 'other_level', 'period'] as $field) {
+            if (trim((string) ($achievement[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function prepareForValidation()

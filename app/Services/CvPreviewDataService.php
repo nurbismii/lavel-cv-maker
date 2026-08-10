@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CvEducation;
+use App\Models\CvAchievement;
 use App\Models\CvProfile;
 use App\Models\User;
 use App\Support\CvResponsibilityRichText;
@@ -60,6 +61,9 @@ class CvPreviewDataService
             'languages' => $this->languages($profile),
             'projects' => $this->projects($profile),
             'organizations' => $this->organizations($profile),
+            'hobbies' => $this->interests($profile->hobbies ?: [], $profile->other_hobby),
+            'talents' => $this->interests($profile->talents ?: [], $profile->other_talent),
+            'achievements' => $this->achievements($profile),
             'technical_skills' => $this->cleanList($profile->technical_skills ?: []),
             'non_technical_skills' => $this->cleanList($profile->non_technical_skills ?: []),
         ];
@@ -267,6 +271,61 @@ class CvPreviewDataService
             })
             ->filter(function ($organization) {
                 return $organization['organization_name'];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    private function interests(array $items, ?string $other): array
+    {
+        $isList = count($items) > 0 && array_keys($items) === range(0, count($items) - 1);
+
+        if (!$isList) {
+            return collect($items)
+                ->map(function ($detail, $key) {
+                    $label = CvProfile::INTEREST_OPTIONS[$key] ?? null;
+                    $detail = $this->cleanLabel($detail);
+
+                    return $label && $detail ? $label . ': ' . $detail : null;
+                })
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        return collect($items)
+            ->map(function ($item) use ($other) {
+                if ($item === 'other') {
+                    $other = $this->cleanLabel($other);
+
+                    return $other ? 'Lainnya: ' . $other : null;
+                }
+
+                return CvProfile::INTEREST_OPTIONS[$item] ?? null;
+            })
+            ->filter()
+            ->values()
+            ->toArray();
+    }
+
+    private function achievements(CvProfile $profile): array
+    {
+        return $profile->achievements
+            ->map(function (CvAchievement $achievement) {
+                return [
+                    'field' => $achievement->field === 'other'
+                        ? ($this->cleanLabel($achievement->other_field) ?: 'Lainnya')
+                        : CvAchievement::fieldLabel($achievement->field),
+                    'type' => $this->cleanLabel($achievement->achievement_type),
+                    'rank' => $this->cleanLabel($achievement->rank),
+                    'level' => $achievement->level === 'other'
+                        ? ($this->cleanLabel($achievement->other_level) ?: 'Lainnya')
+                        : CvAchievement::levelLabel($achievement->level),
+                    'period' => $this->formatMonth($achievement->period),
+                ];
+            })
+            ->filter(function ($achievement) {
+                return $achievement['field'] || $achievement['type'] || $achievement['rank'] || $achievement['level'] || $achievement['period'];
             })
             ->values()
             ->toArray();

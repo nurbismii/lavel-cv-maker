@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\CvProfile;
+use App\Models\CvAchievement;
 use App\Models\User;
 use App\Services\CvPreviewDataService;
 use Tests\TestCase;
@@ -90,11 +91,43 @@ class CvPreviewDataServiceTest extends TestCase
         ], $data['addresses']);
     }
 
+    public function test_it_formats_interests_and_achievements_for_preview(): void
+    {
+        $profile = $this->profile([
+            'hobbies' => ['sports' => 'Futsal', 'other' => 'Berkebun'],
+            'other_hobby' => 'Berkebun',
+            'talents' => ['arts' => 'Melukis'],
+        ]);
+        $profile->setRelation('achievements', collect([
+            new CvAchievement([
+                'field' => 'sports',
+                'achievement_type' => 'Turnamen Futsal',
+                'rank' => 'Juara 1',
+                'level' => 'province',
+                'period' => '2025-05',
+            ]),
+        ]));
+
+        $data = (new CvPreviewDataService())->build($profile, new User());
+
+        $this->assertSame(['Olahraga: Futsal', 'Lainnya: Berkebun'], $data['hobbies']);
+        $this->assertSame(['Seni: Melukis'], $data['talents']);
+        $this->assertSame([
+            [
+                'field' => 'Olahraga',
+                'type' => 'Turnamen Futsal',
+                'rank' => 'Juara 1',
+                'level' => 'Provinsi',
+                'period' => 'Mei 2025',
+            ],
+        ], $data['achievements']);
+    }
+
     private function profile(array $attributes): CvProfile
     {
         $profile = new CvProfile($attributes);
 
-        foreach (['experiences', 'educations', 'certifications', 'languages', 'projects', 'organizations'] as $relation) {
+        foreach (['experiences', 'educations', 'certifications', 'languages', 'projects', 'organizations', 'achievements'] as $relation) {
             $profile->setRelation($relation, collect());
         }
 

@@ -13,6 +13,12 @@ class CvProfile extends Model
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_GENERATED = 'generated';
 
+    public const INTEREST_OPTIONS = [
+        'sports' => 'Olahraga',
+        'arts' => 'Seni',
+        'other' => 'Lainnya',
+    ];
+
     public const BLOOD_TYPES = ['A 型', 'B 型', 'AB 型', 'O 型'];
 
     public const RELIGIONS = [
@@ -70,6 +76,10 @@ class CvProfile extends Model
         'profile_summary',
         'technical_skills',
         'non_technical_skills',
+        'hobbies',
+        'other_hobby',
+        'talents',
+        'other_talent',
         'last_generated_at',
     ];
 
@@ -84,6 +94,8 @@ class CvProfile extends Model
         'domicile_same_as_ktp' => 'boolean',
         'technical_skills' => 'array',
         'non_technical_skills' => 'array',
+        'hobbies' => 'array',
+        'talents' => 'array',
         'last_generated_at' => 'datetime',
     ];
 
@@ -173,5 +185,10 @@ class CvProfile extends Model
     public function organizations()
     {
         return $this->hasMany(CvOrganization::class)->orderBy('sort_order');
+    }
+
+    public function achievements()
+    {
+        return $this->hasMany(CvAchievement::class)->orderBy('sort_order');
     }
 }

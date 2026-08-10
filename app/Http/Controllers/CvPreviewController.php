@@ -18,6 +18,7 @@ class CvPreviewController extends Controller
                 'languages',
                 'projects',
                 'organizations',
+                'achievements',
             ])
             ->first();
 

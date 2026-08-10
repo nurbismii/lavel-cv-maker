@@ -169,7 +169,17 @@
         item = wrapper.firstElementChild;
         list.appendChild(item);
         applyCurrentToggles(list);
+        syncOptionToggles(item);
+        syncRepeatEmptyState(type, list);
         syncCopyCurrentJobToggleAvailability();
+    }
+
+    function syncRepeatEmptyState(type, list) {
+        var emptyState = document.querySelector('[data-repeat-empty="' + type + '"]');
+
+        if (emptyState && list) {
+            emptyState.classList.toggle('d-none', list.querySelectorAll('[data-repeat-item]').length > 0);
+        }
     }
 
     function clearInputs(container) {
@@ -196,15 +206,43 @@
             return;
         }
 
+        if (list.querySelectorAll('[data-repeat-item]').length <= 1 && list.hasAttribute('data-repeat-allow-empty')) {
+            item.remove();
+            syncRepeatEmptyState(list.dataset.repeatList, list);
+            syncCopyCurrentJobToggleAvailability();
+            return;
+        }
+
         if (list.querySelectorAll('[data-repeat-item]').length <= 1) {
             clearInputs(item);
             applyCurrentToggles(item);
+            syncOptionToggles(item);
             syncCopyCurrentJobToggleAvailability();
             return;
         }
 
         item.remove();
         syncCopyCurrentJobToggleAvailability();
+    }
+
+    function syncOptionToggle(toggle) {
+        var targetSelector = toggle ? toggle.dataset.optionToggleTarget : null;
+        var panel = targetSelector ? document.querySelector(targetSelector) : null;
+        var expectedValue = toggle && toggle.dataset.optionToggleValue ? toggle.dataset.optionToggleValue : 'other';
+        var visible = toggle && toggle.type === 'checkbox' ? toggle.checked : fieldValue(toggle) === expectedValue;
+
+        if (!panel) {
+            return;
+        }
+
+        panel.classList.toggle('d-none', !visible);
+        panel.querySelectorAll('input, textarea, select').forEach(function (field) {
+            field.disabled = !visible;
+        });
+    }
+
+    function syncOptionToggles(container) {
+        (container || document).querySelectorAll('[data-option-toggle]').forEach(syncOptionToggle);
     }
 
     function locationPlaceholder(select) {
@@ -1452,6 +1490,32 @@
         ], options, errors);
     }
 
+    function validateInterestsWizardPanel(panel, options, errors) {
+        repeatRows(panel, 'achievements').forEach(function (row) {
+            var started = repeatRowHasValue(row, ['field', 'other_field', 'achievement_type', 'rank', 'level', 'other_level', 'period']);
+            var field = fieldValue(repeatField(row, 'field'));
+            var level = fieldValue(repeatField(row, 'level'));
+
+            if (!started) {
+                return;
+            }
+
+            validateRequiredField(row, '[name$="[field]"]', 'Bidang prestasi', options, errors);
+            validateRequiredField(row, '[name$="[achievement_type]"]', 'Nama/jenis prestasi', options, errors);
+            validateRequiredField(row, '[name$="[rank]"]', 'Peringkat prestasi', options, errors);
+            validateRequiredField(row, '[name$="[level]"]', 'Tingkat prestasi', options, errors);
+            validateRequiredField(row, '[name$="[period]"]', 'Periode prestasi', options, errors);
+
+            if (field === 'other') {
+                validateRequiredField(row, '[name$="[other_field]"]', 'Bidang prestasi lainnya', options, errors);
+            }
+
+            if (level === 'other') {
+                validateRequiredField(row, '[name$="[other_level]"]', 'Tingkat prestasi lainnya', options, errors);
+            }
+        });
+    }
+
     function documentCardHasValidFile(card) {
         var input = card ? card.querySelector('input[type="file"]') : null;
         var remove = card ? card.querySelector('input[name^="remove_documents"]') : null;
@@ -1513,6 +1577,10 @@
 
         if (panelKey === 'extras') {
             validateExtrasWizardPanel(panel, options || {}, errors);
+        }
+
+        if (panelKey === 'interests') {
+            validateInterestsWizardPanel(panel, options || {}, errors);
         }
 
         if (panelKey === 'documents' && !(options || {}).skipDocuments) {
@@ -1964,6 +2032,9 @@
             profile_summary: livePreviewFieldValue('profile_summary'),
             technical_skills: splitLivePreviewList(livePreviewFieldValue('technical_skills')),
             non_technical_skills: splitLivePreviewList(livePreviewFieldValue('non_technical_skills')),
+            hobbies: livePreviewInterests('hobbies'),
+            talents: livePreviewInterests('talents'),
+            achievements: livePreviewRows('achievements', ['field', 'other_field', 'achievement_type', 'rank', 'level', 'other_level', 'period']),
             educations: livePreviewRows('educations', ['level', 'institution', 'major', 'graduation_year']).slice(0, 2),
             experiences: livePreviewRows('experiences', ['position', 'company', 'department', 'division', 'start_month', 'end_month', 'is_current', 'responsibilities']),
             certifications: livePreviewRows('certifications', ['name', 'issuer', 'year', 'valid_until_year', 'is_lifetime', 'type']),
@@ -1981,6 +2052,7 @@
             renderLivePreviewSection('Pengalaman Kerja', renderLivePreviewExperiences(data.experiences)),
             renderLivePreviewSection('Keahlian', renderLivePreviewSkills(data)),
             renderLivePreviewSection('Sertifikasi & Pelatihan', renderLivePreviewCertifications(data.certifications)),
+            renderLivePreviewSection('Minat & Prestasi', renderLivePreviewInterests(data)),
             renderLivePreviewSection('Tambahan', renderLivePreviewExtras(data)),
         ].join('');
 
@@ -2167,6 +2239,65 @@
             }).join(''),
             '</tbody></table></div>',
         ].join('');
+    }
+
+    function renderLivePreviewInterests(data) {
+        var blocks = [];
+
+        if (data.hobbies.length) {
+            blocks.push('<p><strong>Hobi:</strong> ' + escapeHtml(data.hobbies.join(', ')) + '</p>');
+        }
+
+        if (data.talents.length) {
+            blocks.push('<p><strong>Bakat:</strong> ' + escapeHtml(data.talents.join(', ')) + '</p>');
+        }
+
+        if (data.achievements.length) {
+            blocks.push([
+                '<div class="table-responsive"><table class="cv-output-table">',
+                '<thead><tr><th>Bidang</th><th>Nama/Jenis</th><th>Peringkat</th><th>Tingkat</th><th>Periode</th></tr></thead>',
+                '<tbody>',
+                data.achievements.map(function (achievement) {
+                    return [
+                        '<tr>',
+                        '<td>' + escapeHtml(livePreviewOptionLabel(achievement.field, achievement.other_field, {
+                            academic: 'Akademik', non_academic: 'Non-akademik', sports: 'Olahraga', arts: 'Seni', other: 'Lainnya',
+                        })) + '</td>',
+                        '<td>' + escapeHtml(achievement.achievement_type || '-') + '</td>',
+                        '<td>' + escapeHtml(achievement.rank || '-') + '</td>',
+                        '<td>' + escapeHtml(livePreviewOptionLabel(achievement.level, achievement.other_level, {
+                            internal: 'Internal Perusahaan/Sekolah', district: 'Kecamatan', city: 'Kabupaten/Kota', province: 'Provinsi', national: 'Nasional', international: 'Internasional', other: 'Lainnya',
+                        })) + '</td>',
+                        '<td>' + escapeHtml(formatLivePreviewMonth(achievement.period) || '-') + '</td>',
+                        '</tr>',
+                    ].join('');
+                }).join(''),
+                '</tbody></table></div>',
+            ].join(''));
+        }
+
+        return blocks.join('');
+    }
+
+    function livePreviewOptionLabel(value, otherValue, labels) {
+        if (value === 'other') {
+            return cleanLivePreviewText(otherValue) || 'Lainnya';
+        }
+
+        return labels[value] || '-';
+    }
+
+    function livePreviewInterests(name) {
+        var labels = { sports: 'Olahraga', arts: 'Seni', other: 'Lainnya' };
+
+        return Object.keys(labels).map(function (key) {
+            var field = document.querySelector('[name="' + name + '[' + key + ']"]');
+            var detail = cleanLivePreviewText(fieldValue(field));
+
+            return detail ? labels[key] + ': ' + detail : '';
+        }).filter(function (item) {
+            return item !== '';
+        });
     }
 
     function renderLivePreviewExtras(data) {
@@ -2774,6 +2905,10 @@
             syncDomicileAddressFields();
         }
 
+        if (event.target.matches('[data-option-toggle]')) {
+            syncOptionToggle(event.target);
+        }
+
         if (event.target.matches('[data-photo-remove]')) {
             setPhotoPreview(event.target.checked ? null : (photoElements().frame.dataset.photoOriginal || null));
         }
@@ -2835,6 +2970,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         formatNpwpInput(document.querySelector('[data-npwp-input]'));
         applyCurrentToggles(document);
+        syncOptionToggles(document);
         syncCopyCurrentJobToggleAvailability();
         initOrganizationFields();
         syncFamilyDetails();

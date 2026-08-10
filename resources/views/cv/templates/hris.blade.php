@@ -145,6 +145,44 @@
         </section>
     @endif
 
+    @if (count($preview['hobbies']) || count($preview['talents']) || count($preview['achievements']))
+        <section class="cv-output-section">
+            <h2>Minat & Prestasi</h2>
+            @if (count($preview['hobbies']))
+                <p><strong>Hobi:</strong> {{ implode(', ', $preview['hobbies']) }}</p>
+            @endif
+            @if (count($preview['talents']))
+                <p><strong>Bakat:</strong> {{ implode(', ', $preview['talents']) }}</p>
+            @endif
+            @if (count($preview['achievements']))
+                <div class="table-responsive">
+                    <table class="cv-output-table">
+                        <thead>
+                            <tr>
+                                <th>Bidang</th>
+                                <th>Nama/Jenis</th>
+                                <th>Peringkat</th>
+                                <th>Tingkat</th>
+                                <th>Periode</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($preview['achievements'] as $achievement)
+                                <tr>
+                                    <td>{{ $achievement['field'] ?: '-' }}</td>
+                                    <td>{{ $achievement['type'] ?: '-' }}</td>
+                                    <td>{{ $achievement['rank'] ?: '-' }}</td>
+                                    <td>{{ $achievement['level'] ?: '-' }}</td>
+                                    <td>{{ $achievement['period'] ?: '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+    @endif
+
     @if (count($preview['languages']) || count($preview['projects']) || count($preview['organizations']))
         <section class="cv-output-section">
             <h2>Tambahan</h2>

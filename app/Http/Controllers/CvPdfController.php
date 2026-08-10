@@ -20,6 +20,7 @@ class CvPdfController extends Controller
                 'languages',
                 'projects',
                 'organizations',
+                'achievements',
             ])
             ->first();
 

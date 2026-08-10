@@ -66,6 +66,18 @@ return [
 ];
 })->toArray());
 
+$achievements = old('achievements', $profile->achievements->map(function ($item) {
+return [
+'field' => $item->field,
+'other_field' => $item->other_field,
+'achievement_type' => $item->achievement_type,
+'rank' => $item->rank,
+'level' => $item->level,
+'other_level' => $item->other_level,
+'period' => $item->period,
+];
+})->toArray());
+
 $emergencyContacts = old('emergency_contacts', $profile->emergencyContacts->map(function ($item) {
 return [
 'phone' => $item->phone,
@@ -85,6 +97,27 @@ $emergencyContacts = count($emergencyContacts) ? $emergencyContacts : [[]];
 $educationLevels = ['SD 小学', 'SMP 初中', 'SMA SEDERAJAT 高中', 'SMK 职高', 'D1 大专一年', 'D2 大专两年', 'D3 大专三年', 'D4 大专三年', 'S1 本科', 'S2 研究生'];
 $languageLevels = ['Native', 'Lancar', 'Percakapan', 'Dasar', 'Pasif'];
 $emergencyRelationshipOptions = \App\Models\CvEmergencyContact::RELATIONSHIPS;
+$interestOptions = \App\Models\CvProfile::INTEREST_OPTIONS;
+$normalizeInterestDetails = function ($items, $legacyOther = null) use ($interestOptions) {
+    $items = is_array($items) ? $items : [];
+    $isList = count($items) > 0 && array_keys($items) === range(0, count($items) - 1);
+
+    if (!$isList) {
+        return collect($items)->only(array_keys($interestOptions))->map(function ($value) {
+            return trim((string) $value);
+        })->toArray();
+    }
+
+    return collect($items)->filter(function ($key) use ($interestOptions) {
+        return array_key_exists((string) $key, $interestOptions);
+    })->mapWithKeys(function ($key) use ($interestOptions, $legacyOther) {
+        return [$key => $key === 'other' && $legacyOther ? $legacyOther : $interestOptions[$key]];
+    })->toArray();
+};
+$hobbyDetails = $normalizeInterestDetails(old('hobbies', $profile->hobbies ?: []), old('other_hobby', $profile->other_hobby));
+$talentDetails = $normalizeInterestDetails(old('talents', $profile->talents ?: []), old('other_talent', $profile->other_talent));
+$achievementFieldOptions = \App\Models\CvAchievement::FIELD_OPTIONS;
+$achievementLevelOptions = \App\Models\CvAchievement::LEVEL_OPTIONS;
 $currentYear = (int) date('Y');
 $yearOptions = range($currentYear + 1, 1900);
 $validUntilYearOptions = range($currentYear + 30, 1900);
@@ -225,7 +258,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                     <i class="bi bi-question-circle me-1"></i> Panduan
                                 </button>
                                 <span class="badge badge-vpeople cv-wizard-counter">
-                                    Step <span data-wizard-current>1</span> dari <span data-wizard-total>8</span>
+                                    Step <span data-wizard-current>1</span> dari <span data-wizard-total>9</span>
                                 </span>
                             </div>
                         </div>
@@ -277,15 +310,22 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                     <span class="cv-wizard-step-subtitle">Pelatihan</span>
                                 </span>
                             </button>
-                            <button type="button" class="cv-wizard-step" data-wizard-step-target="extras">
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="interests">
                                 <span class="cv-wizard-step-number">7</span>
+                                <span class="cv-wizard-step-text">
+                                    <span class="cv-wizard-step-title">Minat & Prestasi</span>
+                                    <span class="cv-wizard-step-subtitle">Hobi, bakat & pencapaian</span>
+                                </span>
+                            </button>
+                            <button type="button" class="cv-wizard-step" data-wizard-step-target="extras">
+                                <span class="cv-wizard-step-number">8</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Tambahan</span>
                                     <span class="cv-wizard-step-subtitle">Bahasa & proyek</span>
                                 </span>
                             </button>
                             <button type="button" class="cv-wizard-step" data-wizard-step-target="documents">
-                                <span class="cv-wizard-step-number">8</span>
+                                <span class="cv-wizard-step-number">9</span>
                                 <span class="cv-wizard-step-text">
                                     <span class="cv-wizard-step-title">Dokumen</span>
                                     <span class="cv-wizard-step-subtitle">File karyawan</span>
@@ -898,6 +938,65 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                 </div>
             </div>
 
+            <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="interests" data-wizard-title="Minat & Prestasi">
+                <div class="app-card-header">
+                    <h2 class="app-card-title h5">Minat & Prestasi</h2>
+                    <p class="app-card-subtitle">Opsional. Tambahkan hobi, bakat, dan pencapaian yang relevan.</p>
+                </div>
+                <div class="app-card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h3 class="h6 fw-bold mb-3">Hobi</h3>
+                            @foreach ($interestOptions as $value => $label)
+                                @php $hobbyId = 'hobby_' . $value; @endphp
+                                <div class="mb-3">
+                                    <label class="form-label" for="{{ $hobbyId }}">{{ $label }}</label>
+                                    <input id="{{ $hobbyId }}" type="text" name="hobbies[{{ $value }}]" class="form-control @error("hobbies.$value") is-invalid @enderror" value="{{ $hobbyDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Futsal, badminton' : ($value === 'arts' ? 'Contoh: Melukis, musik' : 'Tuliskan hobi lainnya') }}">
+                                    @error("hobbies.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            @endforeach
+                            @error('hobbies') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            <h3 class="h6 fw-bold mb-3">Bakat</h3>
+                            @foreach ($interestOptions as $value => $label)
+                                @php $talentId = 'talent_' . $value; @endphp
+                                <div class="mb-3">
+                                    <label class="form-label" for="{{ $talentId }}">{{ $label }}</label>
+                                    <input id="{{ $talentId }}" type="text" name="talents[{{ $value }}]" class="form-control @error("talents.$value") is-invalid @enderror" value="{{ $talentDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Sepak bola, renang' : ($value === 'arts' ? 'Contoh: Menyanyi, desain' : 'Tuliskan bakat lainnya') }}">
+                                    @error("talents.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            @endforeach
+                            @error('talents') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="repeat-block">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                            <div>
+                                <h3 class="h6 fw-bold mb-1">Prestasi</h3>
+                                <p class="text-muted small mb-0">Isi seluruh kolom pada setiap prestasi yang ditambahkan.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-repeat-add="achievements" data-bs-toggle="tooltip" data-bs-title="Tambah prestasi lain.">
+                                <i class="bi bi-plus-lg me-1"></i> Tambah Prestasi
+                            </button>
+                        </div>
+                        @error('achievements') <div class="text-danger small mb-3">{{ $message }}</div> @enderror
+                        <div class="alert alert-light border text-muted {{ count($achievements) ? 'd-none' : '' }}" data-repeat-empty="achievements">
+                            Belum ada prestasi. Bagian ini boleh dikosongkan.
+                        </div>
+                        <div data-repeat-list="achievements" data-repeat-allow-empty>
+                            @foreach ($achievements as $index => $item)
+                                @include('cv.partials.achievement-row', ['index' => $index, 'item' => $item, 'achievementFieldOptions' => $achievementFieldOptions, 'achievementLevelOptions' => $achievementLevelOptions])
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="app-card cv-wizard-panel mb-4" data-wizard-panel="extras" data-wizard-title="Tambahan Opsional">
                 <div class="app-card-header">
                     <h2 class="app-card-title h5">Tambahan Opsional</h2>
@@ -1125,6 +1224,8 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
 'emergencyRelationshipOptions' => $emergencyRelationshipOptions,
 'yearOptions' => $yearOptions,
 'validUntilYearOptions' => $validUntilYearOptions,
+'achievementFieldOptions' => $achievementFieldOptions,
+'achievementLevelOptions' => $achievementLevelOptions,
 ])
 
 <div class="modal fade" id="photoCropModal" tabindex="-1" aria-labelledby="photoCropModalLabel" aria-hidden="true" data-bs-backdrop="static">

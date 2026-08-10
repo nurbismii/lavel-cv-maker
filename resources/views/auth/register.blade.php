@@ -7,7 +7,7 @@
     @include('partials.page-header', [
     'eyebrow' => 'Validasi V-People',
     'title' => 'Daftar Akun Karyawan',
-    'subtitle' => 'Masukkan NIK Karyawan dan tanggal lahir. Jika cocok, akun Vitae dibuat dan perlu diverifikasi lewat email sebelum dapat digunakan.',
+    'subtitle' => 'Masukkan NIK Karyawan dan tanggal lahir sesuai KTP. Jika cocok, akun Vitae dibuat dan perlu diverifikasi lewat email sebelum dapat digunakan.',
     ])
 
     <div class="app-card">
@@ -35,7 +35,7 @@
 
                 <div class="mb-3">
                     <label for="birth_date" class="form-label">
-                        Tanggal Lahir <span class="text-danger">*</span>
+                        Tanggal Lahir sesuai KTP <span class="text-danger">*</span>
                     </label>
                     <input
                         type="date"

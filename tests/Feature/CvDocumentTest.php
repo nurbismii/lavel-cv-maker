@@ -256,6 +256,38 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_employee_can_save_interests_and_repeatable_achievements(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'hobbies' => ['sports' => 'Futsal', 'other' => 'Berkebun'],
+            'talents' => ['arts' => 'Melukis'],
+            'achievements' => [[
+                'field' => 'sports',
+                'achievement_type' => 'Turnamen Futsal',
+                'rank' => 'Juara 1',
+                'level' => 'province',
+                'period' => '2025-05',
+            ]],
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+
+        $profile = $user->cvProfile()->firstOrFail();
+        $this->assertSame(['sports' => 'Futsal', 'other' => 'Berkebun'], $profile->hobbies);
+        $this->assertSame('Berkebun', $profile->other_hobby);
+        $this->assertSame(['arts' => 'Melukis'], $profile->talents);
+        $this->assertDatabaseHas('cv_achievements', [
+            'cv_profile_id' => $profile->id,
+            'field' => 'sports',
+            'achievement_type' => 'Turnamen Futsal',
+            'rank' => 'Juara 1',
+            'level' => 'province',
+            'period' => '2025-05',
+        ]);
+    }
+
     private function validCvPayload(array $overrides = []): array
     {
         return array_merge([
@@ -346,6 +378,10 @@ class CvDocumentTest extends TestCase
             $table->text('profile_summary')->nullable();
             $table->text('technical_skills')->nullable();
             $table->text('non_technical_skills')->nullable();
+            $table->text('hobbies')->nullable();
+            $table->string('other_hobby')->nullable();
+            $table->text('talents')->nullable();
+            $table->string('other_talent')->nullable();
             $table->timestamp('last_generated_at')->nullable();
             $table->timestamps();
         });
@@ -436,6 +472,20 @@ class CvDocumentTest extends TestCase
             $table->string('role')->nullable();
             $table->unsignedInteger('start_year')->nullable();
             $table->unsignedInteger('end_year')->nullable();
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('cv_achievements', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('cv_profile_id');
+            $table->string('field');
+            $table->string('other_field')->nullable();
+            $table->string('achievement_type');
+            $table->string('rank');
+            $table->string('level');
+            $table->string('other_level')->nullable();
+            $table->string('period', 7);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SaveCvProfileRequest;
+use App\Models\CvAchievement;
 use App\Models\CvCertification;
 use App\Models\CvDocument;
 use App\Models\CvEducation;
@@ -46,6 +47,7 @@ class CvProfileController extends Controller
             'languages',
             'projects',
             'organizations',
+            'achievements',
         ]);
 
         [$locationOptions, $locationMasterError] = $this->locationOptions($request, $profile, $locationService);
@@ -93,6 +95,7 @@ class CvProfileController extends Controller
             'languages',
             'projects',
             'organizations',
+            'achievements',
         ]);
 
         $profile->update([
@@ -251,6 +254,10 @@ class CvProfileController extends Controller
                     'profile_summary' => $request->input('profile_summary'),
                     'technical_skills' => $this->splitList($request->input('technical_skills')),
                     'non_technical_skills' => $this->splitList($request->input('non_technical_skills')),
+                    'hobbies' => $this->interestDetails($request->input('hobbies', [])),
+                    'other_hobby' => $this->nullableTrim(data_get($request->input('hobbies', []), 'other')),
+                    'talents' => $this->interestDetails($request->input('talents', [])),
+                    'other_talent' => $this->nullableTrim(data_get($request->input('talents', []), 'other')),
                 ], $locationSelection));
 
                 $this->syncEmergencyContacts($profile, $request->input('emergency_contacts', []));
@@ -260,6 +267,7 @@ class CvProfileController extends Controller
                 $this->syncLanguages($profile, $request->input('languages', []));
                 $this->syncProjects($profile, $request->input('projects', []));
                 $this->syncOrganizations($profile, $request->input('organizations', []));
+                $this->syncAchievements($profile, $request->input('achievements', []));
                 $oldDocumentPaths = $this->syncDocuments($request, $profile, $documentUploads);
             });
         } catch (\Throwable $exception) {
@@ -622,6 +630,33 @@ class CvProfileController extends Controller
         }
     }
 
+    private function syncAchievements(CvProfile $profile, array $items): void
+    {
+        $profile->achievements()->delete();
+        $sortOrder = 0;
+
+        foreach ($items as $item) {
+            if (!$this->rowHasValue($item, ['field', 'other_field', 'achievement_type', 'rank', 'level', 'other_level', 'period'])) {
+                continue;
+            }
+
+            $field = $item['field'] ?? null;
+            $level = $item['level'] ?? null;
+
+            CvAchievement::create([
+                'cv_profile_id' => $profile->id,
+                'field' => $field,
+                'other_field' => $field === 'other' ? $this->nullableTrim($item['other_field'] ?? null) : null,
+                'achievement_type' => $this->nullableTrim($item['achievement_type'] ?? null),
+                'rank' => $this->nullableTrim($item['rank'] ?? null),
+                'level' => $level,
+                'other_level' => $level === 'other' ? $this->nullableTrim($item['other_level'] ?? null) : null,
+                'period' => $item['period'] ?? null,
+                'sort_order' => $sortOrder++,
+            ]);
+        }
+    }
+
     private function syncDocuments(SaveCvProfileRequest $request, CvProfile $profile, array $uploads): array
     {
         $pathsToDelete = [];
@@ -695,6 +730,25 @@ class CvProfileController extends Controller
         }
 
         return array_values(array_filter(array_map('trim', preg_split('/[,;\n]+/', $value))));
+    }
+
+    private function interestDetails($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $details = [];
+
+        foreach (array_keys(CvProfile::INTEREST_OPTIONS) as $key) {
+            $value = $this->nullableTrim($items[$key] ?? null);
+
+            if ($value !== null) {
+                $details[$key] = $value;
+            }
+        }
+
+        return $details;
     }
 
     private function requiresFamilyDetails(?string $maritalStatus): bool
