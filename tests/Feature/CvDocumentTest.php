@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CvProfile;
 use App\Models\User;
+use App\Services\VPeopleLocationService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,21 @@ class CvDocumentTest extends TestCase
         DB::reconnect('sqlite');
 
         $this->createSchema();
+
+        $locationService = \Mockery::mock(VPeopleLocationService::class);
+        $locationService->shouldReceive('resolveSelection')->andReturnUsing(function (array $input) {
+            return [
+                'province_id' => $input['province_id'] ?? null,
+                'province_name' => 'Sulawesi Tenggara',
+                'regency_id' => $input['regency_id'] ?? null,
+                'regency_name' => 'Konawe Selatan',
+                'district_id' => $input['district_id'] ?? null,
+                'district_name' => 'Moramo',
+                'village_id' => $input['village_id'] ?? null,
+                'village_name' => 'Wawatu',
+            ];
+        });
+        $this->app->instance(VPeopleLocationService::class, $locationService);
     }
 
     public function test_employee_can_upload_private_document_from_cv_draft_form()
@@ -256,6 +272,39 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_personal_step_rejects_missing_address_job_and_emergency_contact_data()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'ktp_address' => '',
+            'province_id' => '',
+            'regency_id' => '',
+            'district_id' => '',
+            'village_id' => '',
+            'address' => '',
+            'work_area' => '',
+            'department' => '',
+            'division' => '',
+            'position' => '',
+            'emergency_contacts' => [],
+        ]));
+
+        $response->assertSessionHasErrors([
+            'ktp_address',
+            'province_id',
+            'regency_id',
+            'district_id',
+            'village_id',
+            'address',
+            'work_area',
+            'department',
+            'division',
+            'position',
+            'emergency_contacts',
+        ]);
+    }
+
     public function test_employee_can_save_interests_and_repeatable_achievements(): void
     {
         $user = User::factory()->create();
@@ -299,6 +348,21 @@ class CvDocumentTest extends TestCase
             'address' => 'Jl. Industri No. 1',
             'phone' => '081234567890',
             'email' => 'budi@example.com',
+            'ktp_address' => 'Jl. KTP No. 10',
+            'province_id' => '74',
+            'regency_id' => '7401',
+            'district_id' => '7401010',
+            'village_id' => '7401010001',
+            'address' => 'Jl. Domisili No. 10',
+            'work_area' => 'VDNI',
+            'department' => 'Human Resources',
+            'division' => 'HR Operations',
+            'position' => 'HR Staff',
+            'emergency_contacts' => [[
+                'phone' => '081234567890',
+                'name' => 'Siti Santoso',
+                'relationship' => 'Orang Tua',
+            ]],
             'profile_summary' => 'Operator produksi berpengalaman.',
             'technical_skills' => 'Microsoft Excel',
         ], $overrides);

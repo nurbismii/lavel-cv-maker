@@ -662,13 +662,13 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">Alamat Sesuai KTP</label>
+                                        <label class="form-label cv-required-label">Alamat Sesuai KTP <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <span class="badge badge-vpeople ms-1">V-People</span>
                                         <textarea name="ktp_address" rows="3" class="form-control @error('ktp_address') is-invalid @enderror" placeholder="Alamat lengkap sesuai KTP" data-ktp-address>{{ $ktpAddressValue }}</textarea>
                                         @error('ktp_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Provinsi</label>
+                                        <label class="form-label cv-required-label">Provinsi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="provinceSelect" name="province_id" class="form-select @error('province_id') is-invalid @enderror" data-location-child="#regencySelect">
                                             <option value="">Pilih provinsi</option>
                                             @foreach ($locationOptions['provinces'] as $province)
@@ -680,7 +680,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('province_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Kabupaten/Kota</label>
+                                        <label class="form-label cv-required-label">Kabupaten/Kota <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="regencySelect" name="regency_id" class="form-select @error('regency_id') is-invalid @enderror" data-location-parent="#provinceSelect" data-location-param="province_id" data-location-url="{{ route('cv.locations.regencies') }}" data-location-child="#districtSelect" data-location-placeholder="Pilih kabupaten/kota" {{ $selectedProvinceId ? '' : 'disabled' }}>
                                             <option value="">Pilih kabupaten/kota</option>
                                             @foreach ($locationOptions['regencies'] as $regency)
@@ -692,7 +692,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('regency_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Kecamatan</label>
+                                        <label class="form-label cv-required-label">Kecamatan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="districtSelect" name="district_id" class="form-select @error('district_id') is-invalid @enderror" data-location-parent="#regencySelect" data-location-param="regency_id" data-location-url="{{ route('cv.locations.districts') }}" data-location-child="#villageSelect" data-location-placeholder="Pilih kecamatan" {{ $selectedRegencyId ? '' : 'disabled' }}>
                                             <option value="">Pilih kecamatan</option>
                                             @foreach ($locationOptions['districts'] as $district)
@@ -704,7 +704,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('district_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Kelurahan/Desa</label>
+                                        <label class="form-label cv-required-label">Kelurahan/Desa <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="villageSelect" name="village_id" class="form-select @error('village_id') is-invalid @enderror" data-location-parent="#districtSelect" data-location-param="district_id" data-location-url="{{ route('cv.locations.villages') }}" data-location-placeholder="Pilih kelurahan/desa" {{ $selectedDistrictId ? '' : 'disabled' }}>
                                             <option value="">Pilih kelurahan/desa</option>
                                             @foreach ($locationOptions['villages'] as $village)
@@ -752,7 +752,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-4">
-                                        <label class="form-label">Area Kerja</label>
+                                        <label class="form-label cv-required-label">Area Kerja <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <span class="badge badge-vpeople ms-1">V-People</span>
                                         <select id="workAreaSelect" name="work_area" class="form-select @error('work_area') is-invalid @enderror" data-organization-child="#departmentSelect" data-organization-url="{{ route('cv.organizations.departments') }}" data-organization-placeholder="Pilih area kerja">
                                             <option value="">Pilih area kerja</option>
@@ -765,7 +765,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('work_area') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">Departemen</label>
+                                        <label class="form-label cv-required-label">Departemen <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="departmentSelect" name="department" class="form-select @error('department') is-invalid @enderror" data-organization-child="#divisionSelect" data-organization-param="department_id" data-organization-url="{{ route('cv.organizations.divisions') }}" data-organization-placeholder="Pilih departemen" {{ $selectedWorkAreaCode || $selectedDepartment ? '' : 'disabled' }}>
                                             <option value="">Pilih departemen</option>
                                             @foreach ($organizationOptions['departments'] as $department)
@@ -780,7 +780,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('department') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label">Divisi</label>
+                                        <label class="form-label cv-required-label">Divisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <select id="divisionSelect" name="division_choice" class="form-select @error('division') is-invalid @enderror @error('division_custom') is-invalid @enderror" data-organization-child="#positionSelect" data-organization-url="{{ route('cv.organizations.positions') }}" data-organization-placeholder="Pilih divisi" data-organization-parent="#departmentSelect" data-organization-target="#divisionHidden" data-organization-custom="#divisionCustomInput" {{ $organizationOptions['selected_department_id'] || $selectedDivision ? '' : 'disabled' }}>
                                             <option value="">Pilih divisi</option>
                                             @foreach ($organizationOptions['divisions'] as $division)
@@ -796,7 +796,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('division_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Jabatan/Posisi</label>
+                                        <label class="form-label cv-required-label">Jabatan/Posisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <div class="row g-2">
                                             <div class="col-md-6">
                                                 <select id="positionSelect" name="position_choice" class="form-select @error('position') is-invalid @enderror @error('position_custom') is-invalid @enderror" data-organization-parent="#departmentSelect" data-organization-target="#positionHidden" data-organization-custom="#positionCustomInput" data-organization-placeholder="Pilih posisi" {{ $organizationOptions['selected_department_id'] || $selectedPosition ? '' : 'disabled' }}>

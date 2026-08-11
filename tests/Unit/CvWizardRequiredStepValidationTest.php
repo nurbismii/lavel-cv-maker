@@ -70,8 +70,23 @@ class CvWizardRequiredStepValidationTest extends TestCase
             'No. HP',
             'Email',
             'Alamat Domisili Lengkap',
+            'Alamat Sesuai KTP',
+            'Provinsi',
+            'Kabupaten/Kota',
+            'Kecamatan',
+            'Kelurahan/Desa',
+            'Area Kerja',
+            'Departemen',
+            'Divisi',
+            'Jabatan/Posisi',
         ] as $label) {
             $this->assertRequiredLabel($edit, $label);
+        }
+
+        $emergencyContact = $this->viewFile('cv/partials/emergency-contact-row.blade.php');
+
+        foreach (['Nomor Kontak Darurat', 'Nama Kontak Darurat', 'Hubungan'] as $label) {
+            $this->assertRequiredLabel($emergencyContact, $label);
         }
 
         $this->assertStringContainsString('<label class="form-label cv-required-label" for="profile_summary">', $edit);

@@ -72,9 +72,18 @@
                 { selector: '[name="birth_place"]', label: 'Tempat lahir' },
                 { selector: '[name="gender"]', label: 'Jenis kelamin' },
                 { selector: '[name="marital_status"]', label: 'Status pernikahan' },
-                { selector: '[name="address"]', label: 'Alamat lengkap' },
+                { selector: '[name="ktp_address"]', label: 'Alamat sesuai KTP' },
+                { selector: '[name="province_id"]', label: 'Provinsi' },
+                { selector: '[name="regency_id"]', label: 'Kabupaten/kota' },
+                { selector: '[name="district_id"]', label: 'Kecamatan' },
+                { selector: '[name="village_id"]', label: 'Kelurahan/desa' },
+                { selector: '[name="address"]', label: 'Alamat domisili lengkap' },
                 { selector: '[name="phone"]', label: 'No. HP' },
                 { selector: '[name="email"]', label: 'Email' },
+                { selector: '[name="work_area"]', label: 'Area kerja' },
+                { selector: '[name="department"]', label: 'Departemen' },
+                { selector: '[name="division"]', label: 'Divisi' },
+                { selector: '[name="position"]', label: 'Jabatan/posisi' },
             ],
         },
         summary: {
@@ -1361,10 +1370,12 @@
     }
 
     function validateEmergencyContactsWizardPanel(panel, options, errors) {
-        repeatRows(panel, 'emergency_contacts').forEach(function (row) {
+        var rows = repeatRows(panel, 'emergency_contacts');
+
+        rows.forEach(function (row, index) {
             var started = repeatRowHasValue(row, ['phone', 'name', 'relationship']);
 
-            if (!started) {
+            if (!started && index > 0) {
                 return;
             }
 

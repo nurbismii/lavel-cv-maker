@@ -85,6 +85,21 @@ class CvInterestsAndAchievementsTest extends TestCase
             'full_name' => 'Karyawan Test',
             'birth_date' => '1990-01-01',
             'email' => 'karyawan@example.com',
+            'ktp_address' => 'Jl. KTP No. 10',
+            'province_id' => '74',
+            'regency_id' => '7401',
+            'district_id' => '7401010',
+            'village_id' => '7401010001',
+            'address' => 'Jl. Domisili No. 10',
+            'work_area' => 'VDNI',
+            'department' => 'Human Resources',
+            'division' => 'HR Operations',
+            'position' => 'HR Staff',
+            'emergency_contacts' => [[
+                'phone' => '081234567890',
+                'name' => 'Siti Santoso',
+                'relationship' => 'Orang Tua',
+            ]],
         ], $data));
         $request->setContainer($this->app);
 
