@@ -132,7 +132,7 @@ class CvDocument extends Model
             self::TYPE_VACCINATION_CERTIFICATE => [
                 'label' => self::TYPES[self::TYPE_VACCINATION_CERTIFICATE],
                 'description' => 'Upload sertifikat vaksin yang masih dapat diverifikasi.',
-                'required' => true,
+                'required' => false,
                 'group' => 'administrative',
             ],
             self::TYPE_BIRTH_CERTIFICATE => [

@@ -12,7 +12,10 @@
     <div class="cv-linked-document-heading">
         <i class="bi bi-paperclip"></i>
         <span>Dokumen {{ $documentOption['label'] }}</span>
+        @if ($documentOption['required'])
         <span class="required-indicator" aria-hidden="true">*</span>
+        <span class="visually-hidden"> wajib diisi</span>
+        @endif
     </div>
 
     @if ($document)

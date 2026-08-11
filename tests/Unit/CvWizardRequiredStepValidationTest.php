@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\CvDocument;
 use Tests\TestCase;
 
 class CvWizardRequiredStepValidationTest extends TestCase
@@ -84,6 +85,24 @@ class CvWizardRequiredStepValidationTest extends TestCase
         foreach (['Nama Posisi/Jabatan', 'Nama Perusahaan', 'Mulai', 'Selesai', 'Job Description'] as $label) {
             $this->assertRequiredLabel($experience, $label);
         }
+    }
+
+    public function test_optional_documents_do_not_render_required_indicators()
+    {
+        $options = CvDocument::documentOptions();
+        $linkedDocumentUpload = $this->viewFile('cv/partials/linked-document-upload.blade.php');
+
+        foreach ([
+            CvDocument::TYPE_MARRIAGE_BOOK,
+            CvDocument::TYPE_DIVORCE_CERTIFICATE,
+            CvDocument::TYPE_CERTIFICATE,
+            CvDocument::TYPE_K3_CERTIFICATE,
+            CvDocument::TYPE_VACCINATION_CERTIFICATE,
+        ] as $documentType) {
+            $this->assertFalse($options[$documentType]['required']);
+        }
+
+        $this->assertStringContainsString("@if (\$documentOption['required'])", $linkedDocumentUpload);
     }
 
     private function assertRequiredLabel(string $contents, string $label): void

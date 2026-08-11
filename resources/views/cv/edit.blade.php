@@ -99,20 +99,20 @@ $languageLevels = ['Native', 'Lancar', 'Percakapan', 'Dasar', 'Pasif'];
 $emergencyRelationshipOptions = \App\Models\CvEmergencyContact::RELATIONSHIPS;
 $interestOptions = \App\Models\CvProfile::INTEREST_OPTIONS;
 $normalizeInterestDetails = function ($items, $legacyOther = null) use ($interestOptions) {
-    $items = is_array($items) ? $items : [];
-    $isList = count($items) > 0 && array_keys($items) === range(0, count($items) - 1);
+$items = is_array($items) ? $items : [];
+$isList = count($items) > 0 && array_keys($items) === range(0, count($items) - 1);
 
-    if (!$isList) {
-        return collect($items)->only(array_keys($interestOptions))->map(function ($value) {
-            return trim((string) $value);
-        })->toArray();
-    }
+if (!$isList) {
+return collect($items)->only(array_keys($interestOptions))->map(function ($value) {
+return trim((string) $value);
+})->toArray();
+}
 
-    return collect($items)->filter(function ($key) use ($interestOptions) {
-        return array_key_exists((string) $key, $interestOptions);
-    })->mapWithKeys(function ($key) use ($interestOptions, $legacyOther) {
-        return [$key => $key === 'other' && $legacyOther ? $legacyOther : $interestOptions[$key]];
-    })->toArray();
+return collect($items)->filter(function ($key) use ($interestOptions) {
+return array_key_exists((string) $key, $interestOptions);
+})->mapWithKeys(function ($key) use ($interestOptions, $legacyOther) {
+return [$key => $key === 'other' && $legacyOther ? $legacyOther : $interestOptions[$key]];
+})->toArray();
 };
 $hobbyDetails = $normalizeInterestDetails(old('hobbies', $profile->hobbies ?: []), old('other_hobby', $profile->other_hobby));
 $talentDetails = $normalizeInterestDetails(old('talents', $profile->talents ?: []), old('other_talent', $profile->other_talent));
@@ -948,12 +948,12 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         <div class="col-md-6">
                             <h3 class="h6 fw-bold mb-3">Hobi</h3>
                             @foreach ($interestOptions as $value => $label)
-                                @php $hobbyId = 'hobby_' . $value; @endphp
-                                <div class="mb-3">
-                                    <label class="form-label" for="{{ $hobbyId }}">{{ $label }}</label>
-                                    <input id="{{ $hobbyId }}" type="text" name="hobbies[{{ $value }}]" class="form-control @error("hobbies.$value") is-invalid @enderror" value="{{ $hobbyDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Futsal, badminton' : ($value === 'arts' ? 'Contoh: Melukis, musik' : 'Tuliskan hobi lainnya') }}">
-                                    @error("hobbies.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                            @php $hobbyId = 'hobby_' . $value; @endphp
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ $hobbyId }}">{{ $label }}</label>
+                                <input id="{{ $hobbyId }}" type="text" name="hobbies[{{ $value }}]" class="form-control @error(" hobbies.$value") is-invalid @enderror" value="{{ $hobbyDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Futsal, badminton' : ($value === 'arts' ? 'Contoh: Melukis, musik' : 'Tuliskan hobi lainnya') }}">
+                                @error("hobbies.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
                             @endforeach
                             @error('hobbies') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
@@ -961,12 +961,12 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         <div class="col-md-6">
                             <h3 class="h6 fw-bold mb-3">Bakat</h3>
                             @foreach ($interestOptions as $value => $label)
-                                @php $talentId = 'talent_' . $value; @endphp
-                                <div class="mb-3">
-                                    <label class="form-label" for="{{ $talentId }}">{{ $label }}</label>
-                                    <input id="{{ $talentId }}" type="text" name="talents[{{ $value }}]" class="form-control @error("talents.$value") is-invalid @enderror" value="{{ $talentDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Sepak bola, renang' : ($value === 'arts' ? 'Contoh: Menyanyi, desain' : 'Tuliskan bakat lainnya') }}">
-                                    @error("talents.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                            @php $talentId = 'talent_' . $value; @endphp
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ $talentId }}">{{ $label }}</label>
+                                <input id="{{ $talentId }}" type="text" name="talents[{{ $value }}]" class="form-control @error(" talents.$value") is-invalid @enderror" value="{{ $talentDetails[$value] ?? '' }}" maxlength="255" placeholder="{{ $value === 'sports' ? 'Contoh: Sepak bola, renang' : ($value === 'arts' ? 'Contoh: Menyanyi, desain' : 'Tuliskan bakat lainnya') }}">
+                                @error("talents.$value") <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
                             @endforeach
                             @error('talents') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
@@ -990,7 +990,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                         </div>
                         <div data-repeat-list="achievements" data-repeat-allow-empty>
                             @foreach ($achievements as $index => $item)
-                                @include('cv.partials.achievement-row', ['index' => $index, 'item' => $item, 'achievementFieldOptions' => $achievementFieldOptions, 'achievementLevelOptions' => $achievementLevelOptions])
+                            @include('cv.partials.achievement-row', ['index' => $index, 'item' => $item, 'achievementFieldOptions' => $achievementFieldOptions, 'achievementLevelOptions' => $achievementLevelOptions])
                             @endforeach
                         </div>
                     </div>
