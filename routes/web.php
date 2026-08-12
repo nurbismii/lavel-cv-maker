@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/cv/edit', [CvProfileController::class, 'edit'])->name('cv.edit');
+    Route::post('/cv/autosave', [CvProfileController::class, 'autosave'])->name('cv.autosave');
     Route::post('/cv/draft', [CvProfileController::class, 'saveDraft'])->name('cv.draft.save');
     Route::post('/cv/summary', [CvProfileController::class, 'generateSummary'])->name('cv.summary.generate');
     Route::post('/cv/save-preview', [CvProfileController::class, 'saveAndPreview'])->name('cv.preview.save');

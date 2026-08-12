@@ -53,6 +53,8 @@ class CvProfile extends Model
         'has_children',
         'children_names',
         'ktp_address',
+        'rt',
+        'rw',
         'domicile_same_as_ktp',
         'province_id',
         'province_name',

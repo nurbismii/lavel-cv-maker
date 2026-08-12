@@ -52,10 +52,10 @@
         <div class="col-12">
             <label class="form-label cv-required-label">Job Description <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
             @php
-                $responsibilitiesText = \App\Support\CvResponsibilityRichText::toTextareaText($item['responsibilities'] ?? null);
+                $responsibilitiesText = \App\Support\CvResponsibilityRichText::toBulletedTextareaText($item['responsibilities'] ?? null);
             @endphp
-            <textarea name="experiences[{{ $index }}][responsibilities]" rows="5" class="form-control" placeholder="Contoh: Melakukan perawatan mesin&#10;Membuat laporan harian&#10;Memastikan area kerja aman">{{ $responsibilitiesText }}</textarea>
-            <div class="form-text">Tekan Enter untuk membuat baris baru.</div>
+            <textarea name="experiences[{{ $index }}][responsibilities]" rows="5" class="form-control" data-bullet-list placeholder="Contoh: Melakukan perawatan mesin&#10;Membuat laporan harian&#10;Memastikan area kerja aman">{{ $responsibilitiesText }}</textarea>
+            <div class="form-text">Bullet ditambahkan otomatis. Tulis satu tanggung jawab per baris tanpa menambahkan -, *, atau bullet lagi.</div>
         </div>
     </div>
 </div>

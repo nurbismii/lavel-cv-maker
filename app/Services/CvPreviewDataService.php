@@ -111,7 +111,11 @@ class CvPreviewDataService
     {
         $domicileAddress = $this->displayAddress($profile->address);
         $location = $this->location($profile);
-        $ktp = $this->displayAddress($profile->ktp_address);
+        $ktp = $this->addressWithRtRw($profile->ktp_address, $profile->rt, $profile->rw);
+
+        if ($profile->domicile_same_as_ktp) {
+            $domicileAddress = $this->addressWithRtRw($profile->address, $profile->rt, $profile->rw);
+        }
         $addresses = [];
 
         if ($domicileAddress && $ktp && !$profile->domicile_same_as_ktp && $this->normalizedAddress($ktp) !== $this->normalizedAddress($domicileAddress)) {
@@ -129,6 +133,21 @@ class CvPreviewDataService
         }
 
         return $addresses;
+    }
+
+    private function addressWithRtRw($address, ?string $rt, ?string $rw): ?string
+    {
+        $address = $this->displayAddress($address);
+        $neighborhood = array_filter([
+            $rt ? 'RT ' . $rt : null,
+            $rw ? 'RW ' . $rw : null,
+        ]);
+
+        if (!$address) {
+            return null;
+        }
+
+        return count($neighborhood) ? $address . "\n" . implode(' / ', $neighborhood) : $address;
     }
 
     private function displayAddress($value): ?string

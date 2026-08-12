@@ -26,35 +26,52 @@
         }
 
         .cv-output-header {
+            position: relative;
+            min-height: 40mm;
             padding-bottom: 11px;
             border-bottom: 2px solid #1f2937;
             margin-bottom: 14px;
         }
 
         .cv-output-header-grid {
-            display: table;
+            display: block;
             width: 100%;
+            min-height: 40mm;
         }
 
         .cv-output-header-main {
-            display: table-cell;
-            vertical-align: top;
-            padding-right: 16px;
+            display: block;
+            padding-right: 38mm;
+        }
+
+        .cv-output-photo-cell {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 32mm;
         }
 
         .cv-output-photo-frame {
-            display: table-cell;
-            width: 90px;
-            height: 115px;
+            width: 32mm;
+            min-width: 32mm;
+            max-width: 32mm;
+            height: 40mm;
+            min-height: 40mm;
+            max-height: 40mm;
             border: 1.5px solid #111827;
-            vertical-align: top;
             text-align: center;
             overflow: hidden;
+            line-height: 0;
         }
 
         .cv-output-photo-frame img {
-            width: 90px;
-            height: 115px;
+            display: block;
+            width: 32mm;
+            min-width: 32mm;
+            max-width: 32mm;
+            height: 40mm;
+            min-height: 40mm;
+            max-height: 40mm;
         }
 
         .cv-output-header h1 {

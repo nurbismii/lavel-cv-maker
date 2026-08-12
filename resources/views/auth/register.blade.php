@@ -70,30 +70,54 @@
                     <label for="password" class="form-label">
                         Password <span class="text-danger">*</span>
                     </label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        class="form-control @error('password') is-invalid @enderror"
-                        autocomplete="new-password"
-                        required>
+                    <div class="input-group has-validation">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control @error('password') is-invalid @enderror"
+                            autocomplete="new-password"
+                            required>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-password-toggle
+                            data-password-target="password"
+                            aria-label="Tampilkan password"
+                            aria-pressed="false"
+                            title="Tampilkan password">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                        @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <div class="form-text">Gunakan minimal 8 karakter.</div>
-                    @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
                 </div>
 
                 <div class="mb-4">
                     <label for="password_confirmation" class="form-label">
                         Konfirmasi Password <span class="text-danger">*</span>
                     </label>
-                    <input
-                        type="password"
-                        id="password_confirmation"
-                        name="password_confirmation"
-                        class="form-control"
-                        autocomplete="new-password"
-                        required>
+                    <div class="input-group">
+                        <input
+                            type="password"
+                            id="password_confirmation"
+                            name="password_confirmation"
+                            class="form-control"
+                            autocomplete="new-password"
+                            required>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-password-toggle
+                            data-password-target="password_confirmation"
+                            aria-label="Tampilkan konfirmasi password"
+                            aria-pressed="false"
+                            title="Tampilkan konfirmasi password">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100" data-loading-text="Memvalidasi V-People...">
@@ -109,3 +133,7 @@
     </p>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/password-toggle.js') }}?v={{ filemtime(public_path('js/password-toggle.js')) }}"></script>
+@endpush

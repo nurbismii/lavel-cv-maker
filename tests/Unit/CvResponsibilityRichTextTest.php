@@ -28,6 +28,27 @@ class CvResponsibilityRichTextTest extends TestCase
         );
     }
 
+    public function test_it_formats_textarea_with_visual_bullets_and_does_not_store_markers()
+    {
+        $this->assertSame(
+            "• Merawat mesin\n• Membuat laporan",
+            CvResponsibilityRichText::toBulletedTextareaText("- Merawat mesin\n* Membuat laporan")
+        );
+
+        $this->assertSame(
+            ['Merawat mesin', 'Membuat laporan', 'Menjaga area kerja'],
+            CvResponsibilityRichText::toStorage("• Merawat mesin\n- Membuat laporan\n* Menjaga area kerja")
+        );
+
+        $this->assertSame(['Merawat mesin'], CvResponsibilityRichText::toStorage('• - Merawat mesin'));
+    }
+
+    public function test_empty_bulleted_textarea_is_not_stored_as_a_responsibility()
+    {
+        $this->assertSame('• ', CvResponsibilityRichText::toBulletedTextareaText(null));
+        $this->assertSame([], CvResponsibilityRichText::toStorage('• '));
+    }
+
     public function test_it_converts_legacy_responsibility_list_to_bullet_html()
     {
         $this->assertSame(

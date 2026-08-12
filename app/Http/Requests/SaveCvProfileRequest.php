@@ -7,6 +7,7 @@ use App\Models\CvDocument;
 use App\Models\CvAchievement;
 use App\Models\CvProfile;
 use App\Services\VPeopleOrganizationService;
+use App\Support\CvResponsibilityRichText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,28 +30,30 @@ class SaveCvProfileRequest extends FormRequest
      */
     public function rules()
     {
-        return array_merge([
+        $laterStepPresenceRule = ($this->routeIs('cv.summary.generate') || $this->isAutosave()) ? 'nullable' : 'required';
+
+        $rules = array_merge([
             'full_name' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
-            'ktp_number' => ['nullable', 'digits:16'],
-            'family_card_number' => ['nullable', 'digits:16'],
-            'bank_account_number' => ['nullable', 'string', 'regex:/^[0-9]{5,34}$/'],
-            'npwp_number' => ['nullable', 'digits_between:15,16'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
+            'ktp_number' => ['required', 'digits:16'],
+            'family_card_number' => ['required', 'digits:16'],
+            'bank_account_number' => ['required', 'string', 'regex:/^[0-9]{5,34}$/'],
+            'npwp_number' => ['required', 'digits_between:15,16'],
+            'birth_place' => ['required', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'documents' => ['nullable', 'array'],
             'remove_documents' => ['nullable', 'array'],
             'remove_documents.*' => ['nullable'],
-            'gender' => ['nullable', 'in:L,P'],
-            'height_cm' => ['nullable', 'integer', 'min:50', 'max:250'],
-            'weight_kg' => ['nullable', 'numeric', 'min:20', 'max:300'],
-            'blood_type' => ['nullable', 'string', Rule::in(CvProfile::BLOOD_TYPES)],
-            'religion' => ['nullable', 'string', Rule::in(CvProfile::RELIGIONS)],
-            'marital_status' => ['nullable', 'string', 'max:64'],
+            'gender' => ['required', 'in:L,P'],
+            'height_cm' => ['required', 'integer', 'min:50', 'max:250'],
+            'weight_kg' => ['required', 'numeric', 'min:20', 'max:300'],
+            'blood_type' => ['required', 'string', Rule::in(CvProfile::BLOOD_TYPES)],
+            'religion' => ['required', 'string', Rule::in(CvProfile::RELIGIONS)],
+            'marital_status' => ['required', 'string', 'max:64'],
             'marriage_date' => ['nullable', 'date'],
             'spouse_name' => ['nullable', 'string', 'max:255'],
-            'mother_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['required', 'string', 'max:255'],
             'has_children' => ['nullable', 'boolean'],
             'children_names' => ['nullable', 'array', 'max:3'],
             'children_names.*' => ['nullable', 'string', 'max:255'],
@@ -59,9 +62,11 @@ class SaveCvProfileRequest extends FormRequest
             'district_id' => ['required', 'string', 'max:32'],
             'village_id' => ['required', 'string', 'max:32'],
             'ktp_address' => ['required', 'string', 'max:2000'],
+            'rt' => ['required', 'regex:/^[0-9]{1,3}$/'],
+            'rw' => ['required', 'regex:/^[0-9]{1,3}$/'],
             'domicile_same_as_ktp' => ['nullable', 'boolean'],
             'address' => ['required_unless:domicile_same_as_ktp,1', 'nullable', 'string', 'max:2000'],
-            'phone' => ['nullable', 'string', 'max:64'],
+            'phone' => ['required', 'digits_between:10,13'],
             'email' => ['required', 'email', 'max:255'],
             'instagram' => ['nullable', 'string', 'max:255'],
             'linkedin' => ['nullable', 'string', 'max:255'],
@@ -73,8 +78,8 @@ class SaveCvProfileRequest extends FormRequest
             'division_custom' => ['nullable', 'string', 'max:255'],
             'position' => ['required', 'string', 'max:255'],
             'position_custom' => ['nullable', 'string', 'max:255'],
-            'profile_summary' => ['nullable', 'string', 'max:300'],
-            'technical_skills' => ['nullable', 'string', 'max:1000'],
+            'profile_summary' => [$laterStepPresenceRule, 'string', 'max:300'],
+            'technical_skills' => [$laterStepPresenceRule, 'string', 'max:1000'],
             'non_technical_skills' => ['nullable', 'string', 'max:1000'],
             'hobbies' => ['nullable', 'array', 'max:' . count(CvProfile::INTEREST_OPTIONS)],
             'hobbies.*' => ['nullable', 'string', 'max:255'],
@@ -135,6 +140,8 @@ class SaveCvProfileRequest extends FormRequest
             'organizations.*.start_year' => ['nullable', 'integer', 'min:1900', 'max:' . (((int) date('Y')) + 1)],
             'organizations.*.end_year' => ['nullable', 'integer', 'min:1900', 'max:' . (((int) date('Y')) + 1)],
         ], $this->documentRules());
+
+        return $this->isAutosave() ? $this->relaxRequiredRules($rules) : $rules;
     }
 
     public function messages()
@@ -145,7 +152,29 @@ class SaveCvProfileRequest extends FormRequest
             'full_name.required' => 'Nama lengkap wajib diisi.',
             'birth_date.required' => 'Tanggal lahir wajib diisi.',
             'birth_date.date' => 'Format tanggal lahir tidak valid.',
+            'ktp_number.required' => 'No. KTP wajib diisi.',
+            'family_card_number.required' => 'No. KK wajib diisi.',
+            'bank_account_number.required' => 'No. rekening wajib diisi.',
+            'npwp_number.required' => 'No. NPWP wajib diisi.',
+            'birth_place.required' => 'Tempat lahir wajib diisi.',
+            'gender.required' => 'Jenis kelamin wajib dipilih.',
+            'blood_type.required' => 'Golongan darah wajib dipilih.',
+            'height_cm.required' => 'Tinggi badan wajib diisi.',
+            'weight_kg.required' => 'Berat badan wajib diisi.',
+            'religion.required' => 'Agama wajib dipilih.',
+            'mother_name.required' => 'Nama ibu kandung wajib diisi.',
+            'marital_status.required' => 'Status pernikahan wajib dipilih.',
+            'phone.required' => 'No. HP wajib diisi.',
+            'phone.digits_between' => 'No. HP harus berisi 10 sampai 13 digit angka.',
+            'profile_summary.required' => 'Ringkasan profil wajib diisi.',
+            'technical_skills.required' => 'Keahlian teknis wajib diisi.',
+            'experiences.required' => 'Minimal satu pengalaman kerja wajib diisi lengkap.',
+            'educations.required' => 'Minimal satu riwayat pendidikan wajib diisi lengkap.',
             'ktp_address.required' => 'Alamat sesuai KTP wajib diisi.',
+            'rt.required' => 'RT wajib diisi.',
+            'rt.regex' => 'RT harus berupa angka 000 sampai 999.',
+            'rw.required' => 'RW wajib diisi.',
+            'rw.regex' => 'RW harus berupa angka 000 sampai 999.',
             'province_id.required' => 'Provinsi wajib dipilih.',
             'regency_id.required' => 'Kabupaten/kota wajib dipilih.',
             'district_id.required' => 'Kecamatan wajib dipilih.',
@@ -219,6 +248,40 @@ class SaveCvProfileRequest extends FormRequest
 
             if (strlen($npwpNumber) === 16 && $npwpNumber !== $ktpNumber) {
                 $validator->errors()->add('npwp_number', 'No. NPWP 16 digit hanya dapat digunakan jika sama dengan No. KTP.');
+            }
+
+            if ($this->isAutosave()) {
+                return;
+            }
+
+            $profile = $this->user() ? $this->user()->cvProfile : null;
+            $hasPhoto = $this->hasFile('photo')
+                || ($profile && $profile->photo_path && !$this->boolean('remove_photo'));
+
+            if (!$hasPhoto) {
+                $validator->errors()->add('photo', 'Pas foto wajib diunggah.');
+            }
+
+            foreach (CvDocument::documentOptions() as $type => $documentOption) {
+                if (!$documentOption['required']) {
+                    continue;
+                }
+
+                if ($this->routeIs('cv.summary.generate') && $type === CvDocument::TYPE_DIPLOMA) {
+                    continue;
+                }
+
+                $hasNewFile = $this->hasFile("documents.{$type}");
+                $keepsExistingFile = $this->keepsExistingRequiredDocument($profile, $type);
+
+                if (!$hasNewFile && !$keepsExistingFile) {
+                    $validator->errors()->add("documents.{$type}", CvDocument::labelFor($type) . ' wajib diunggah.');
+                }
+            }
+
+            if (!$this->routeIs('cv.summary.generate')) {
+                $this->validateRequiredExperienceRows($validator);
+                $this->validateRequiredEducationRows($validator);
             }
 
             foreach ((array) $this->file('documents', []) as $type => $file) {
@@ -304,6 +367,114 @@ class SaveCvProfileRequest extends FormRequest
         }
     }
 
+    private function keepsExistingRequiredDocument($profile, string $type): bool
+    {
+        if (!$profile) {
+            return false;
+        }
+
+        $documents = $profile->documents()->where('type', $type)->get(['id']);
+
+        if (CvDocument::acceptsMultipleFiles($type)) {
+            $removedDocuments = (array) $this->input("remove_documents.{$type}", []);
+
+            return $documents->contains(function ($document) use ($removedDocuments) {
+                return empty($removedDocuments[$document->id]);
+            });
+        }
+
+        return $documents->isNotEmpty() && !$this->boolean("remove_documents.{$type}");
+    }
+
+    private function validateRequiredExperienceRows($validator): void
+    {
+        $startedRows = 0;
+
+        foreach ((array) $this->input('experiences', []) as $index => $experience) {
+            if (!is_array($experience)) {
+                continue;
+            }
+
+            $responsibilityInput = $experience['responsibilities'] ?? null;
+            $responsibilities = CvResponsibilityRichText::toPlainText(
+                CvResponsibilityRichText::toStorage(is_string($responsibilityInput) ? $responsibilityInput : null)
+            );
+            $hasValue = $this->rowHasAnyValue($experience, [
+                'position', 'company', 'department', 'division', 'start_month', 'end_month',
+            ]) || $responsibilities !== null || !empty($experience['is_current']);
+
+            if (!$hasValue) {
+                continue;
+            }
+
+            $startedRows++;
+            $requiredFields = [
+                'position' => 'Nama posisi/jabatan',
+                'company' => 'Nama perusahaan',
+                'department' => 'Departemen',
+                'division' => 'Divisi',
+                'start_month' => 'Bulan mulai',
+            ];
+
+            foreach ($requiredFields as $field => $label) {
+                if (trim((string) ($experience[$field] ?? '')) === '') {
+                    $validator->errors()->add("experiences.{$index}.{$field}", "{$label} wajib diisi.");
+                }
+            }
+
+            if (empty($experience['is_current']) && trim((string) ($experience['end_month'] ?? '')) === '') {
+                $validator->errors()->add("experiences.{$index}.end_month", 'Bulan selesai wajib diisi.');
+            }
+
+            if ($responsibilities === null) {
+                $validator->errors()->add("experiences.{$index}.responsibilities", 'Job description wajib diisi.');
+            }
+        }
+
+        if ($startedRows === 0) {
+            $validator->errors()->add('experiences', 'Minimal satu pengalaman kerja wajib diisi lengkap.');
+        }
+    }
+
+    private function validateRequiredEducationRows($validator): void
+    {
+        $startedRows = 0;
+
+        foreach ((array) $this->input('educations', []) as $index => $education) {
+            if (!is_array($education) || !$this->rowHasAnyValue($education, ['level', 'institution', 'major', 'graduation_year'])) {
+                continue;
+            }
+
+            $startedRows++;
+
+            foreach ([
+                'level' => 'Jenjang pendidikan',
+                'institution' => 'Nama institusi',
+                'major' => 'Jurusan',
+                'graduation_year' => 'Tahun lulus',
+            ] as $field => $label) {
+                if (trim((string) ($education[$field] ?? '')) === '') {
+                    $validator->errors()->add("educations.{$index}.{$field}", "{$label} wajib diisi.");
+                }
+            }
+        }
+
+        if ($startedRows === 0) {
+            $validator->errors()->add('educations', 'Minimal satu riwayat pendidikan wajib diisi lengkap.');
+        }
+    }
+
+    private function rowHasAnyValue(array $row, array $fields): bool
+    {
+        foreach ($fields as $field) {
+            if (trim((string) ($row[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function achievementHasValue($achievement): bool
     {
         if (!is_array($achievement)) {
@@ -322,9 +493,55 @@ class SaveCvProfileRequest extends FormRequest
     protected function prepareForValidation()
     {
         $npwpNumber = preg_replace('/\D+/', '', (string) $this->input('npwp_number'));
+        $phone = $this->normalizeIndonesianPhone($this->input('phone'));
 
         $this->merge([
             'npwp_number' => $npwpNumber ?: null,
+            'phone' => $phone,
+            'rt' => $this->normalizeAddressNumber($this->input('rt')),
+            'rw' => $this->normalizeAddressNumber($this->input('rw')),
         ]);
+    }
+
+    private function isAutosave(): bool
+    {
+        return $this->routeIs('cv.autosave');
+    }
+
+    private function relaxRequiredRules(array $rules): array
+    {
+        foreach ($rules as $field => $fieldRules) {
+            $rules[$field] = array_values(array_filter($fieldRules, function ($rule) {
+                return !is_string($rule) || ($rule !== 'required' && strpos($rule, 'required_') !== 0);
+            }));
+
+            if (!in_array('nullable', $rules[$field], true)) {
+                array_unshift($rules[$field], 'nullable');
+            }
+        }
+
+        return $rules;
+    }
+
+    private function normalizeIndonesianPhone($value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        return strpos($digits, '62') === 0 ? '0' . substr($digits, 2) : $digits;
+    }
+
+    private function normalizeAddressNumber($value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        return strlen($digits) <= 3 ? str_pad($digits, 3, '0', STR_PAD_LEFT) : $digits;
     }
 }

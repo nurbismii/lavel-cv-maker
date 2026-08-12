@@ -23,8 +23,11 @@ class CvWizardRequiredStepValidationTest extends TestCase
 
         $this->assertStringContainsString('function validateExtrasWizardPanel', $script);
         $this->assertStringContainsString('function validateDocumentsWizardPanel', $script);
+        $this->assertStringContainsString('function validateRequiredUploadsInPanel', $script);
+        $this->assertStringContainsString('validateRequiredUploadsInPanel(panel', $script);
         $this->assertStringContainsString("if (panelKey === 'extras')", $script);
         $this->assertStringContainsString("if (panelKey === 'documents' && !(options || {}).skipDocuments)", $script);
+        $this->assertStringNotContainsString("['SD', 'SMP'].indexOf(level)", $script);
         $this->assertStringContainsString("validateRepeatRows(panel, 'languages'", $script);
         $this->assertStringContainsString("validateRepeatRows(panel, 'projects'", $script);
         $this->assertStringContainsString("validateRepeatRows(panel, 'organizations'", $script);
@@ -63,9 +66,19 @@ class CvWizardRequiredStepValidationTest extends TestCase
 
         foreach ([
             'Nama Lengkap',
+            'No. KTP',
+            'No. KK',
+            'No. Rekening',
+            'No. NPWP',
+            'Pas Foto',
             'Tempat Lahir',
             'Tanggal Lahir',
             'Jenis Kelamin',
+            'Golongan Darah',
+            'Tinggi Badan',
+            'Berat Badan',
+            'Agama',
+            'Nama Ibu Kandung',
             'Status Pernikahan',
             'No. HP',
             'Email',
@@ -108,6 +121,7 @@ class CvWizardRequiredStepValidationTest extends TestCase
         $linkedDocumentUpload = $this->viewFile('cv/partials/linked-document-upload.blade.php');
 
         foreach ([
+            CvDocument::TYPE_BIRTH_CERTIFICATE,
             CvDocument::TYPE_MARRIAGE_BOOK,
             CvDocument::TYPE_DIVORCE_CERTIFICATE,
             CvDocument::TYPE_CERTIFICATE,
@@ -122,7 +136,7 @@ class CvWizardRequiredStepValidationTest extends TestCase
 
     private function assertRequiredLabel(string $contents, string $label): void
     {
-        $pattern = '/<label class="form-label[^"]*">\s*'
+        $pattern = '/<label class="form-label[^"]*"[^>]*>\s*'
             . preg_quote($label, '/')
             . '\s*<span class="required-indicator" aria-hidden="true">\*<\/span>\s*'
             . '<span class="visually-hidden"> wajib diisi<\/span>\s*'

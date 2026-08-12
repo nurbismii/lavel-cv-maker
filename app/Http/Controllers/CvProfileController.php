@@ -76,6 +76,17 @@ class CvProfileController extends Controller
             ->with('success', 'Draft CV berhasil disimpan.');
     }
 
+    public function autosave(SaveCvProfileRequest $request, VPeopleLocationService $locationService)
+    {
+        $profile = $this->profileFor($request);
+        $this->persistDraft($request, $profile, $locationService);
+
+        return response()->json([
+            'message' => 'Perubahan berhasil disimpan.',
+            'saved_at' => now()->format('H:i'),
+        ]);
+    }
+
     public function generateSummary(
         SaveCvProfileRequest $request,
         CvSummaryService $summaryService,
@@ -240,9 +251,11 @@ class CvProfileController extends Controller
                     'children_names' => $hasChildren ? $this->childrenNames($request->input('children_names', [])) : [],
                     'mother_name' => $this->nullableTrim($request->input('mother_name')),
                     'ktp_address' => $ktpAddress,
+                    'rt' => $this->addressNumber($request->input('rt')),
+                    'rw' => $this->addressNumber($request->input('rw')),
                     'domicile_same_as_ktp' => $domicileSameAsKtp,
                     'address' => $domicileAddress,
-                    'phone' => $request->input('phone'),
+                    'phone' => $this->normalizeIndonesianPhone($request->input('phone')),
                     'email' => $request->input('email'),
                     'instagram' => $this->nullableTrim($request->input('instagram')),
                     'linkedin' => $this->nullableTrim($request->input('linkedin')),
@@ -799,6 +812,24 @@ class CvProfileController extends Controller
         $digits = preg_replace('/\D+/', '', $value);
 
         return $digits ?: null;
+    }
+
+    private function normalizeIndonesianPhone(?string $value): ?string
+    {
+        $digits = $this->digitsOnly($value);
+
+        if ($digits && strpos($digits, '62') === 0) {
+            return '0' . substr($digits, 2);
+        }
+
+        return $digits;
+    }
+
+    private function addressNumber(?string $value): ?string
+    {
+        $digits = $this->digitsOnly($value);
+
+        return $digits === null ? null : str_pad($digits, 3, '0', STR_PAD_LEFT);
     }
 
     private function rowHasValue(array $row, array $keys): bool

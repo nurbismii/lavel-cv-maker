@@ -1,6 +1,7 @@
 (function () {
     var repeatIndex = null;
     var photoCropper = null;
+    var wizardAutosaveInProgress = false;
     var photoCropModal = null;
     var pendingPhotoInput = null;
     var pendingPhotoObjectUrl = null;
@@ -13,6 +14,7 @@
     var guideInitialWizardIndex = null;
     var GUIDE_STORAGE_KEY = 'vitae.cv-form-guide.seen.v5';
     var GUIDE_READ_DELAY_MS = 1400;
+    var BULLET_LIST_PREFIX = '• ';
     var CV_GUIDE_STEPS = [
         {
             title: 'Isi CV Bertahap',
@@ -68,11 +70,22 @@
         personal: {
             fields: [
                 { selector: '[name="full_name"]', label: 'Nama lengkap' },
-                { selector: '[name="birth_date"]', label: 'Tanggal lahir' },
+                { selector: '[name="ktp_number"]', label: 'No. KTP' },
+                { selector: '[name="family_card_number"]', label: 'No. KK' },
+                { selector: '[name="bank_account_number"]', label: 'No. rekening' },
+                { selector: '[name="npwp_number"]', label: 'No. NPWP' },
                 { selector: '[name="birth_place"]', label: 'Tempat lahir' },
+                { selector: '[name="birth_date"]', label: 'Tanggal lahir' },
                 { selector: '[name="gender"]', label: 'Jenis kelamin' },
+                { selector: '[name="blood_type"]', label: 'Golongan darah' },
+                { selector: '[name="height_cm"]', label: 'Tinggi badan' },
+                { selector: '[name="weight_kg"]', label: 'Berat badan' },
+                { selector: '[name="religion"]', label: 'Agama' },
+                { selector: '[name="mother_name"]', label: 'Nama ibu kandung' },
                 { selector: '[name="marital_status"]', label: 'Status pernikahan' },
                 { selector: '[name="ktp_address"]', label: 'Alamat sesuai KTP' },
+                { selector: '[name="rt"]', label: 'RT' },
+                { selector: '[name="rw"]', label: 'RW' },
                 { selector: '[name="province_id"]', label: 'Provinsi' },
                 { selector: '[name="regency_id"]', label: 'Kabupaten/kota' },
                 { selector: '[name="district_id"]', label: 'Kecamatan' },
@@ -177,6 +190,7 @@
         wrapper.innerHTML = html.trim();
         item = wrapper.firstElementChild;
         list.appendChild(item);
+        initBulletListFields(item);
         applyCurrentToggles(list);
         syncOptionToggles(item);
         syncRepeatEmptyState(type, list);
@@ -204,6 +218,60 @@
             }
 
             field.value = '';
+        });
+
+        initBulletListFields(container);
+    }
+
+    function stripBulletListPrefix(line) {
+        var cleaned = String(line || '').trim();
+        var previous = null;
+
+        while (cleaned !== previous) {
+            previous = cleaned;
+            cleaned = cleaned.replace(/^(?:(?:[•●▪◦*\-])|(?:\d+[.)]))(?:\s+|$)/u, '').trim();
+        }
+
+        return cleaned;
+    }
+
+    function formatBulletListText(value) {
+        var lines = String(value || '').replace(/\r\n?/g, '\n').split('\n');
+
+        return lines.map(function (line) {
+            return BULLET_LIST_PREFIX + stripBulletListPrefix(line);
+        }).join('\n');
+    }
+
+    function normalizeBulletListField(field) {
+        var value = String(field.value || '');
+        var formatted = formatBulletListText(value);
+        var selectionStart = field.selectionStart;
+        var selectionEnd = field.selectionEnd;
+
+        if (value === formatted) {
+            return;
+        }
+
+        field.value = formatted;
+
+        if (typeof selectionStart === 'number' && typeof selectionEnd === 'number') {
+            field.setSelectionRange(
+                formatBulletListText(value.slice(0, selectionStart)).length,
+                formatBulletListText(value.slice(0, selectionEnd)).length
+            );
+        }
+    }
+
+    function initBulletListFields(container) {
+        (container || document).querySelectorAll('[data-bullet-list]').forEach(function (field) {
+            field.value = formatBulletListText(field.value);
+        });
+    }
+
+    function bulletListHasContent(field) {
+        return String(field && field.value || '').split(/\r?\n/).some(function (line) {
+            return stripBulletListPrefix(line) !== '';
         });
     }
 
@@ -523,6 +591,53 @@
         value = String(value || '').trim().toLowerCase();
 
         return value !== '' && value.indexOf('belum') === -1;
+    }
+
+    function maritalDocumentType(value) {
+        value = String(value || '').trim().toLowerCase();
+
+        if (value.indexOf('cerai') !== -1) {
+            return 'divorce';
+        }
+
+        if (value.indexOf('menikah') !== -1 || (value.indexOf('kawin') !== -1 && value.indexOf('belum') === -1)) {
+            return 'marriage';
+        }
+
+        return '';
+    }
+
+    function syncMaritalDocument() {
+        var status = document.querySelector('[data-family-status]');
+        var section = document.querySelector('[data-marital-document-section]');
+        var title = section ? section.querySelector('[data-marital-document-title]') : null;
+        var description = section ? section.querySelector('[data-marital-document-description]') : null;
+        var activeType = maritalDocumentType(status ? status.value : '');
+
+        if (!section) {
+            return;
+        }
+
+        section.hidden = !activeType;
+
+        section.querySelectorAll('[data-marital-document-type]').forEach(function (documentField) {
+            var isActive = documentField.dataset.maritalDocumentType === activeType;
+
+            documentField.hidden = !isActive;
+            documentField.querySelectorAll('input, textarea, select, button').forEach(function (field) {
+                field.disabled = !isActive;
+            });
+        });
+
+        if (title) {
+            title.textContent = activeType === 'divorce' ? 'Dokumen Status Cerai' : 'Dokumen Status Pernikahan';
+        }
+
+        if (description) {
+            description.textContent = activeType === 'divorce'
+                ? 'Upload surat cerai sesuai status pernikahan Anda.'
+                : 'Upload buku nikah sesuai status pernikahan Anda.';
+        }
     }
 
     function syncFamilyDetails() {
@@ -1232,6 +1347,10 @@
             return true;
         }
 
+        if (field.matches('[data-bullet-list]')) {
+            return bulletListHasContent(field);
+        }
+
         return fieldValue(field) !== '';
     }
 
@@ -1393,7 +1512,6 @@
         rows.forEach(function (row) {
             var started = repeatRowHasValue(row, ['level', 'institution', 'major', 'graduation_year']);
             var before = errors.length;
-            var level = fieldValue(repeatField(row, 'level'));
 
             if (!started) {
                 return;
@@ -1403,11 +1521,8 @@
 
             validateRequiredField(row, '[name$="[level]"]', 'Jenjang pendidikan', options, errors);
             validateRequiredField(row, '[name$="[institution]"]', 'Nama institusi', options, errors);
+            validateRequiredField(row, '[name$="[major]"]', 'Jurusan', options, errors);
             validateRequiredField(row, '[name$="[graduation_year]"]', 'Tahun lulus', options, errors);
-
-            if (level && ['SD', 'SMP'].indexOf(level) === -1) {
-                validateRequiredField(row, '[name$="[major]"]', 'Jurusan', options, errors);
-            }
 
             if (errors.length === before) {
                 completeRows += 1;
@@ -1505,7 +1620,7 @@
         repeatRows(panel, 'achievements').forEach(function (row) {
             var started = repeatRowHasValue(row, ['field', 'other_field', 'achievement_type', 'rank', 'level', 'other_level', 'period']);
             var field = fieldValue(repeatField(row, 'field'));
-            var level = fieldValue(repeatField(row, 'level'));
+            var level = null;
 
             if (!started) {
                 return;
@@ -1552,6 +1667,23 @@
         });
     }
 
+    function validateRequiredUploadsInPanel(panel, options, errors) {
+        var photoInput = panel ? panel.querySelector('[data-photo-input]') : null;
+
+        if (photoInput && !livePreviewPhotoSrc()) {
+            addWizardFieldError(errors, photoInput, requiredMessage('Pas foto'), options);
+        }
+
+        panel.querySelectorAll('[data-document-required="1"]').forEach(function (card) {
+            var input = card.querySelector('input[type="file"]');
+            var label = card.dataset.documentLabel || 'Dokumen wajib';
+
+            if (!documentCardHasValidFile(card)) {
+                addWizardFieldError(errors, input, requiredMessage(label), options);
+            }
+        });
+    }
+
     function validateWizardPanel(panel, options) {
         var errors = [];
         var panelKey = panel ? panel.dataset.wizardPanel : null;
@@ -1569,6 +1701,7 @@
         }
 
         validateSimpleWizardPanel(panel, options || {}, errors);
+        validateRequiredUploadsInPanel(panel, options || {}, errors);
 
         if (panelKey === 'personal') {
             validateEmergencyContactsWizardPanel(panel, options || {}, errors);
@@ -1717,6 +1850,82 @@
         event.preventDefault();
     }
 
+    function autosaveStatus(elements, message, isError) {
+        var status = elements && elements.form ? elements.form.querySelector('[data-autosave-status]') : null;
+
+        if (!status) {
+            return;
+        }
+
+        status.textContent = message || '';
+        status.classList.toggle('d-none', !message);
+        status.classList.toggle('text-danger', !!isError);
+        status.classList.toggle('text-muted', !isError);
+    }
+
+    function autosaveWizardStep(elements, panel) {
+        var url = elements.form.dataset.autosaveUrl;
+        var formData;
+
+        if (!url) {
+            return Promise.resolve(true);
+        }
+
+        formData = new FormData(elements.form);
+        formData.set('autosave_step', panel.dataset.wizardPanel || '');
+
+        elements.form.querySelectorAll('input[type="file"][name]').forEach(function (input) {
+            if (!panel.contains(input)) {
+                formData.delete(input.name);
+            }
+        });
+
+        wizardAutosaveInProgress = true;
+        elements.nextButton.disabled = true;
+        autosaveStatus(elements, 'Menyimpan...', false);
+
+        return fetch(url, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        }).then(function (response) {
+            return response.json().catch(function () {
+                return {};
+            }).then(function (payload) {
+                if (!response.ok) {
+                    var validationErrors = payload.errors ? Object.keys(payload.errors).map(function (key) {
+                        return payload.errors[key][0];
+                    }) : [];
+
+                    throw new Error(validationErrors[0] || payload.message || 'Data belum berhasil disimpan.');
+                }
+
+                autosaveStatus(elements, 'Tersimpan ' + (payload.saved_at || ''), false);
+                return true;
+            });
+        }).catch(function (error) {
+            autosaveStatus(elements, 'Gagal menyimpan', true);
+
+            if (window.Swal && typeof window.Swal.fire === 'function') {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal menyimpan langkah',
+                    text: error.message || 'Periksa koneksi lalu coba kembali.',
+                    confirmButtonText: 'Mengerti',
+                });
+            }
+
+            return false;
+        }).finally(function () {
+            wizardAutosaveInProgress = false;
+            elements.nextButton.disabled = false;
+        });
+    }
+
     function goToWizardStep(index, options) {
         var elements = wizardElements();
 
@@ -1724,7 +1933,17 @@
             return;
         }
 
-        if (index > activeWizardIndex && !validateWizardPath(elements, index)) {
+        if (index > activeWizardIndex) {
+            if (wizardAutosaveInProgress || !validateWizardPath(elements, index)) {
+                return;
+            }
+
+            autosaveWizardStep(elements, elements.panels[activeWizardIndex]).then(function (saved) {
+                if (saved) {
+                    setWizardStep(index, options);
+                }
+            });
+
             return;
         }
 
@@ -2033,6 +2252,8 @@
             address: livePreviewFieldValue('address'),
             location: location.join(', '),
             ktp_address: livePreviewFieldValue('ktp_address'),
+            rt: livePreviewFieldValue('rt'),
+            rw: livePreviewFieldValue('rw'),
             domicile_same_as_ktp: !!document.querySelector('[data-domicile-same-toggle]:checked'),
             phone: livePreviewFieldValue('phone'),
             email: livePreviewFieldValue('email'),
@@ -2138,7 +2359,19 @@
         var domicile = cleanLivePreviewMultilineText(data.address);
         var location = cleanLivePreviewText(data.location);
         var ktp = cleanLivePreviewMultilineText(data.ktp_address);
+        var neighborhood = cleanLivePreviewList([
+            data.rt ? 'RT ' + data.rt : '',
+            data.rw ? 'RW ' + data.rw : '',
+        ]).join(' / ');
         var addresses = [];
+
+        if (ktp && neighborhood) {
+            ktp += '\n' + neighborhood;
+        }
+
+        if (domicile && data.domicile_same_as_ktp && neighborhood) {
+            domicile += '\n' + neighborhood;
+        }
 
         if (domicile && ktp && !data.domicile_same_as_ktp && normalizeLivePreviewAddress(ktp) !== normalizeLivePreviewAddress(domicile)) {
             addresses.push({
@@ -2290,6 +2523,22 @@
         return blocks.join('');
     }
 
+    function normalizeIndonesianPhone(value) {
+        var digits = String(value || '').replace(/\D+/g, '');
+
+        if (digits.indexOf('62') === 0) {
+            digits = '0' + digits.slice(2);
+        }
+
+        return digits.slice(0, 13);
+    }
+
+    function normalizeAddressNumber(value, pad) {
+        var digits = String(value || '').replace(/\D+/g, '').slice(0, 3);
+
+        return pad && digits ? digits.padStart(3, '0') : digits;
+    }
+
     function livePreviewOptionLabel(value, otherValue, labels) {
         if (value === 'other') {
             return cleanLivePreviewText(otherValue) || 'Lainnya';
@@ -2413,7 +2662,9 @@
     function cleanLivePreviewMultilineText(value) {
         value = String(value || '').replace(/[\u3400-\u9FFF\uF900-\uFAFF]+/g, '');
 
-        return value.split(/\n+/).map(cleanLivePreviewText).filter(function (line) {
+        return value.split(/\n+/).map(function (line) {
+            return cleanLivePreviewText(stripBulletListPrefix(line));
+        }).filter(function (line) {
             return line !== '';
         }).join('\n');
     }
@@ -2627,6 +2878,33 @@
         setPhotoPreview(URL.createObjectURL(file));
     }
 
+    function initializePhotoCropper(elements) {
+        var isSmallScreen = window.matchMedia && window.matchMedia('(max-width: 575.98px)').matches;
+
+        if (!elements.cropImage || !elements.cropImage.complete || !elements.cropImage.naturalWidth) {
+            return false;
+        }
+
+        if (photoCropper) {
+            photoCropper.destroy();
+        }
+
+        photoCropper = new Cropper(elements.cropImage, {
+            aspectRatio: 4 / 5,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: isSmallScreen ? 0.88 : 0.94,
+            background: false,
+            responsive: true,
+            restore: false,
+            checkOrientation: true,
+            minCropBoxWidth: isSmallScreen ? 120 : 240,
+            minCropBoxHeight: isSmallScreen ? 150 : 300,
+        });
+
+        return true;
+    }
+
     function openPhotoCrop(input) {
         var elements = photoElements();
         var file = input.files && input.files.length ? input.files[0] : null;
@@ -2648,36 +2926,18 @@
         pendingPhotoObjectUrl = URL.createObjectURL(file);
         elements.cropImage.src = pendingPhotoObjectUrl;
 
-        elements.cropImage.onload = function () {
-            if (photoCropper) {
-                photoCropper.destroy();
-            }
-
-            photoCropper = new Cropper(elements.cropImage, {
-                aspectRatio: 4 / 5,
-                viewMode: 1,
-                dragMode: 'move',
-                autoCropArea: 0.94,
-                background: false,
-                responsive: true,
-                checkOrientation: true,
-                minContainerWidth: 720,
-                minContainerHeight: 520,
-                minCropBoxWidth: 240,
-                minCropBoxHeight: 300,
-            });
-        };
-
-        modal.show();
-
         elements.cropModal.addEventListener('shown.bs.modal', function handleShown() {
             elements.cropModal.removeEventListener('shown.bs.modal', handleShown);
 
-            if (photoCropper) {
-                photoCropper.reset();
-                photoCropper.crop();
+            if (!initializePhotoCropper(elements)) {
+                elements.cropImage.addEventListener('load', function handleImageLoad() {
+                    elements.cropImage.removeEventListener('load', handleImageLoad);
+                    initializePhotoCropper(elements);
+                });
             }
         });
+
+        modal.show();
     }
 
     function applyPhotoCrop() {
@@ -2912,6 +3172,10 @@
             syncFamilyDetails();
         }
 
+        if (event.target.matches('[data-family-status]')) {
+            syncMaritalDocument();
+        }
+
         if (event.target.matches('[data-domicile-same-toggle]')) {
             syncDomicileAddressFields();
         }
@@ -2933,6 +3197,18 @@
     });
 
     document.addEventListener('input', function (event) {
+        if (event.target.matches('[data-indonesian-phone]')) {
+            event.target.value = normalizeIndonesianPhone(event.target.value);
+        }
+
+        if (event.target.matches('[data-address-number]')) {
+            event.target.value = normalizeAddressNumber(event.target.value, false);
+        }
+
+        if (event.target.matches('[data-bullet-list]')) {
+            normalizeBulletListField(event.target);
+        }
+
         if (event.target.matches('[data-npwp-input], [name="ktp_number"]')) {
             formatNpwpInput(document.querySelector('[data-npwp-input]'));
         }
@@ -2963,7 +3239,12 @@
         }
     });
 
-    document.addEventListener('focusout', function () {
+    document.addEventListener('focusout', function (event) {
+        if (event.target.matches('[data-address-number]')) {
+            event.target.value = normalizeAddressNumber(event.target.value, true);
+            event.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
         window.setTimeout(function () {
             var form = document.getElementById('cvForm');
             var activeElement = document.activeElement;
@@ -2978,13 +3259,48 @@
         validateWizardSubmit(event);
     });
 
+    document.addEventListener('keydown', function (event) {
+        var field = event.target.closest('[data-bullet-list]');
+
+        if (!field) {
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            var start = field.selectionStart;
+            var end = field.selectionEnd;
+
+            event.preventDefault();
+            field.setRangeText('\n' + BULLET_LIST_PREFIX, start, end, 'end');
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+
+        if (event.key === 'Backspace' && field.selectionStart === field.selectionEnd) {
+            var lineStart = field.value.lastIndexOf('\n', field.selectionStart - 1) + 1;
+            var lineEnd = field.value.indexOf('\n', lineStart);
+            var currentLine = field.value.slice(lineStart, lineEnd === -1 ? field.value.length : lineEnd);
+
+            if (field.selectionStart <= lineStart + BULLET_LIST_PREFIX.length) {
+                event.preventDefault();
+
+                if (lineStart > 0 && stripBulletListPrefix(currentLine) === '') {
+                    field.setRangeText('', lineStart - 1, lineStart + BULLET_LIST_PREFIX.length, 'start');
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
+        initBulletListFields(document);
         formatNpwpInput(document.querySelector('[data-npwp-input]'));
         applyCurrentToggles(document);
         syncOptionToggles(document);
         syncCopyCurrentJobToggleAvailability();
         initOrganizationFields();
         syncFamilyDetails();
+        syncMaritalDocument();
         syncDomicileAddressFields();
         initGuideTooltips();
         updateCounters();

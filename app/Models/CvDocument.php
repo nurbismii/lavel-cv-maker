@@ -138,7 +138,7 @@ class CvDocument extends Model
             self::TYPE_BIRTH_CERTIFICATE => [
                 'label' => self::TYPES[self::TYPE_BIRTH_CERTIFICATE],
                 'description' => 'Upload scan atau foto akta kelahiran yang terbaca jelas.',
-                'required' => true,
+                'required' => false,
                 'group' => 'administrative',
             ],
             self::TYPE_MARRIAGE_BOOK => [

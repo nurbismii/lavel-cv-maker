@@ -67,6 +67,25 @@ class CvLivePreviewTest extends TestCase
         $this->assertStringContainsString("fieldName === 'responsibilities'", $script);
     }
 
+    public function test_job_description_uses_automatic_bullet_list_input()
+    {
+        $experienceRow = file_get_contents(resource_path('views/cv/partials/experience-row.blade.php'));
+        $script = $this->script();
+
+        $this->assertStringContainsString('data-bullet-list', $experienceRow);
+        $this->assertStringContainsString('Bullet ditambahkan otomatis.', $experienceRow);
+
+        foreach ([
+            "var BULLET_LIST_PREFIX = '• ';",
+            'function stripBulletListPrefix',
+            'function normalizeBulletListField',
+            'function initBulletListFields',
+            "event.target.matches('[data-bullet-list]')",
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $script);
+        }
+    }
+
     public function test_live_preview_has_scoped_responsive_styles()
     {
         $css = $this->css();

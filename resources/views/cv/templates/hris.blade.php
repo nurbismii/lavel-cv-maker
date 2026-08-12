@@ -40,10 +40,12 @@
                     </p>
                 @endif
             </div>
-            <div class="cv-output-photo-frame {{ $photoSrc ? 'has-photo' : 'is-empty' }}">
-                @if ($photoSrc)
-                    <img src="{{ $photoSrc }}" alt="Foto {{ $profile->full_name }}">
-                @endif
+            <div class="cv-output-photo-cell">
+                <div class="cv-output-photo-frame {{ $photoSrc ? 'has-photo' : 'is-empty' }}">
+                    @if ($photoSrc)
+                        <img src="{{ $photoSrc }}" alt="Foto {{ $profile->full_name }}">
+                    @endif
+                </div>
             </div>
         </div>
     </header>

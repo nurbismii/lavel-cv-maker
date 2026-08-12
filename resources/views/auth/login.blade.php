@@ -36,16 +36,28 @@
                     <label for="password" class="form-label">
                         Password <span class="text-danger">*</span>
                     </label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        class="form-control @error('password') is-invalid @enderror"
-                        autocomplete="current-password"
-                        required>
-                    @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="input-group has-validation">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control @error('password') is-invalid @enderror"
+                            autocomplete="current-password"
+                            required>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-password-toggle
+                            data-password-target="password"
+                            aria-label="Tampilkan password"
+                            aria-pressed="false"
+                            title="Tampilkan password">
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                        </button>
+                        @error('password')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="form-check mb-4">
@@ -68,3 +80,7 @@
     </p>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/password-toggle.js') }}?v={{ filemtime(public_path('js/password-toggle.js')) }}"></script>
+@endpush

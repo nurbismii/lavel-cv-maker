@@ -16,6 +16,19 @@ class CvResponsibilityRichText
         return implode("\n", self::normalizeLines($value));
     }
 
+    public static function toBulletedTextareaText($value): string
+    {
+        $lines = self::normalizeLines($value);
+
+        if (!count($lines)) {
+            return '• ';
+        }
+
+        return implode("\n", array_map(function (string $line) {
+            return '• ' . $line;
+        }, $lines));
+    }
+
     public static function toOutputHtml($value): ?string
     {
         $lines = self::normalizeLines($value);
@@ -147,6 +160,14 @@ class CvResponsibilityRichText
         foreach (explode("\n", $text) as $line) {
             $line = str_replace("\xc2\xa0", ' ', $line);
             $line = trim(preg_replace('/[ \t]+/', ' ', $line));
+
+            do {
+                $originalLine = $line;
+                $line = preg_replace('/^(?:(?:[•●▪◦*\-])|(?:\d+[.)]))(?:\s+|$)/u', '', $line);
+                $line = ltrim($line);
+            } while ($line !== $originalLine);
+
+            $line = trim($line);
 
             if ($line !== '') {
                 $lines[] = $line;

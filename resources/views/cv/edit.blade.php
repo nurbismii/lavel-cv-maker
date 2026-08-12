@@ -95,7 +95,7 @@ $organizations = count($organizations) ? $organizations : [[]];
 $emergencyContacts = count($emergencyContacts) ? $emergencyContacts : [[]];
 
 $educationLevels = ['SD 小学', 'SMP 初中', 'SMA SEDERAJAT 高中', 'SMK 职高', 'D1 大专一年', 'D2 大专两年', 'D3 大专三年', 'D4 大专三年', 'S1 本科', 'S2 研究生'];
-$languageLevels = ['Native', 'Lancar', 'Percakapan', 'Dasar', 'Pasif'];
+$languageLevels = ['Sangat Baik', 'Baik', 'Cukup', 'Kurang'];
 $emergencyRelationshipOptions = \App\Models\CvEmergencyContact::RELATIONSHIPS;
 $interestOptions = \App\Models\CvProfile::INTEREST_OPTIONS;
 $normalizeInterestDetails = function ($items, $legacyOther = null) use ($interestOptions) {
@@ -152,6 +152,10 @@ $hasOldInput = session()->hasOldInput();
 $selectedMaritalStatus = old('marital_status', $profile->marital_status);
 $maritalStatusOptions = ['Belum Kawin', 'Menikah', 'Cerai Hidup', 'Cerai Mati'];
 $familyDetailsVisible = $selectedMaritalStatus && stripos((string) $selectedMaritalStatus, 'belum') === false;
+$normalizedMaritalStatus = strtolower(trim((string) $selectedMaritalStatus));
+$maritalDocumentType = strpos($normalizedMaritalStatus, 'cerai') !== false
+    ? 'divorce'
+    : ((strpos($normalizedMaritalStatus, 'menikah') !== false || (strpos($normalizedMaritalStatus, 'kawin') !== false && strpos($normalizedMaritalStatus, 'belum') === false)) ? 'marriage' : null);
 $marriageDateValue = old('marriage_date', optional($profile->marriage_date)->format('Y-m-d'));
 $hasChildren = $hasOldInput ? (bool) old('has_children') : (bool) $profile->has_children;
 $childrenNames = $hasOldInput ? old('children_names', []) : ($profile->children_names ?: []);
@@ -239,7 +243,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
 
 <div class="row g-4 align-items-start">
     <div class="col-lg-7">
-        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" data-current-job-position="{{ $currentJobExperience['position'] }}" data-current-job-company="{{ $currentJobExperience['company'] }}" data-current-job-department="{{ $currentJobExperience['department'] }}" data-current-job-division="{{ $currentJobExperience['division'] }}" data-current-job-start-month="{{ $currentJobExperience['start_month'] }}" data-live-preview-nik="{{ $vpeopleNik ?: '' }}" novalidate>
+        <form method="POST" action="{{ route('cv.draft.save') }}" id="cvForm" enctype="multipart/form-data" data-autosave-url="{{ route('cv.autosave') }}" data-current-job-position="{{ $currentJobExperience['position'] }}" data-current-job-company="{{ $currentJobExperience['company'] }}" data-current-job-department="{{ $currentJobExperience['department'] }}" data-current-job-division="{{ $currentJobExperience['division'] }}" data-current-job-start-month="{{ $currentJobExperience['start_month'] }}" data-live-preview-nik="{{ $vpeopleNik ?: '' }}" novalidate>
             @csrf
 
             <div class="cv-wizard" data-cv-wizard data-initial-step="{{ request('step') }}">
@@ -368,7 +372,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <div class="col-12">
                                             <div class="cv-field-with-document">
                                                 <div class="mb-2">
-                                                    <label class="form-label">No. KTP</label>
+                                                    <label class="form-label">No. KTP<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                                     <span class="badge badge-vpeople ms-1">V-People</span>
                                                     <input type="text" name="ktp_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('ktp_number') is-invalid @enderror" value="{{ old('ktp_number', $profile->ktp_number) }}" placeholder="16 digit No. KTP">
                                                     @error('ktp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -379,7 +383,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <div class="col-12">
                                             <div class="cv-field-with-document">
                                                 <div class="mb-2">
-                                                    <label class="form-label">No. KK</label>
+                                                    <label class="form-label">No. KK<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                                     <span class="badge badge-vpeople ms-1">V-People</span>
                                                     <input type="text" name="family_card_number" inputmode="numeric" pattern="[0-9]*" maxlength="16" class="form-control @error('family_card_number') is-invalid @enderror" value="{{ old('family_card_number', $profile->family_card_number) }}" placeholder="16 digit No. KK">
                                                     @error('family_card_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -388,14 +392,14 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label" for="bank_account_number">No. Rekening</label>
+                                            <label class="form-label" for="bank_account_number">No. Rekening<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <input id="bank_account_number" type="number" name="bank_account_number" inputmode="numeric" pattern="[0-9]*" maxlength="34" class="form-control @error('bank_account_number') is-invalid @enderror" value="{{ old('bank_account_number', $profile->bank_account_number) }}" placeholder="Nomor rekening">
                                             @error('bank_account_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-12">
                                             <div class="cv-field-with-document">
                                                 <div class="mb-2">
-                                                    <label class="form-label" for="npwp_number">No. NPWP</label>
+                                                    <label class="form-label" for="npwp_number">No. NPWP<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                                     <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="20" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
                                                     @error('npwp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
@@ -403,22 +407,22 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             </div>
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label">Foto CV</label>
+                                            <label class="form-label">Pas Foto<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <div class="cv-photo-uploader">
                                                 <div class="cv-photo-frame {{ $photoUrl ? 'has-photo' : 'is-empty' }}" data-photo-frame data-photo-original="{{ $photoUrl }}">
                                                     @if ($photoUrl)
-                                                    <img src="{{ $photoUrl }}" alt="Foto CV" data-photo-preview>
+                                                    <img src="{{ $photoUrl }}" alt="Pas Foto" data-photo-preview>
                                                     @else
                                                     <div class="cv-photo-placeholder" data-photo-placeholder>
                                                         <i class="bi bi-plus-lg"></i>
-                                                        <span>Foto kosong</span>
+                                                        <span>Pas Foto kosong</span>
                                                     </div>
-                                                    <img src="" alt="Preview foto CV" class="d-none" data-photo-preview>
+                                                    <img src="" alt="Preview pas foto" class="d-none" data-photo-preview>
                                                     @endif
                                                 </div>
                                                 <div class="cv-photo-actions">
                                                     <input type="file" name="photo" id="photoInput" class="form-control @error('photo') is-invalid @enderror" accept=".jpg,.jpeg,.png,image/jpeg,image/png" data-photo-input>
-                                                    <div class="form-text">Opsional. Format JPG/PNG, maksimal 2MB. Upload ulang untuk mengganti foto.</div>
+                                                    <div class="form-text">Wajib. Format JPG/PNG, maksimal 2MB. Upload ulang untuk mengganti foto.</div>
                                                     @error('photo') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
 
                                                     @if ($profile->photo_path)
@@ -456,7 +460,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             @error('gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Golongan Darah</label>
+                                            <label class="form-label cv-required-label">Golongan Darah <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <select name="blood_type" class="form-select @error('blood_type') is-invalid @enderror">
                                                 <option value="">Pilih golongan darah</option>
                                                 @foreach ($bloodTypeOptions as $bloodType)
@@ -466,7 +470,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             @error('blood_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Tinggi Badan</label>
+                                            <label class="form-label cv-required-label">Tinggi Badan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <div class="input-group">
                                                 <input type="number" name="height_cm" min="50" max="250" step="1" inputmode="numeric" class="form-control @error('height_cm') is-invalid @enderror" value="{{ old('height_cm', $profile->height_cm) }}" placeholder="Contoh: 170">
                                                 <span class="input-group-text">cm</span>
@@ -474,7 +478,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             </div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Berat Badan</label>
+                                            <label class="form-label cv-required-label">Berat Badan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <div class="input-group">
                                                 <input type="number" name="weight_kg" min="20" max="300" step="0.1" inputmode="decimal" class="form-control @error('weight_kg') is-invalid @enderror" value="{{ old('weight_kg', $profile->weight_kg) }}" placeholder="Contoh: 65.5">
                                                 <span class="input-group-text">kg</span>
@@ -483,7 +487,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         </div>
 
                                         <div class="col-md-6">
-                                            <label class="form-label">Agama</label>
+                                            <label class="form-label cv-required-label">Agama <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <select name="religion" class="form-select @error('religion') is-invalid @enderror">
                                                 <option value="">Pilih agama</option>
@@ -494,7 +498,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             @error('religion') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Nama Ibu Kandung</label>
+                                            <label class="form-label cv-required-label">Nama Ibu Kandung <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                             <span class="badge badge-vpeople ms-1">V-People</span>
                                             <input type="text" name="mother_name" class="form-control @error('mother_name') is-invalid @enderror" value="{{ old('mother_name', $profile->mother_name) }}" placeholder="Nama lengkap ibu kandung">
                                             @error('mother_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -511,15 +515,19 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             </select>
                                             @error('marital_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-12" data-marital-document-section {{ $maritalDocumentType ? '' : 'hidden' }}>
                                             <div class="cv-field-with-document">
                                                 <div class="cv-field-card mb-2">
-                                                    <span class="form-label d-block">Dokumen Status Pernikahan</span>
-                                                    <p class="text-muted small mb-0">Upload buku nikah atau surat cerai sesuai status pernikahan Anda.</p>
+                                                    <span class="form-label d-block" data-marital-document-title>{{ $maritalDocumentType === 'divorce' ? 'Dokumen Status Cerai' : 'Dokumen Status Pernikahan' }}</span>
+                                                    <p class="text-muted small mb-0" data-marital-document-description>{{ $maritalDocumentType === 'divorce' ? 'Upload surat cerai sesuai status pernikahan Anda.' : 'Upload buku nikah sesuai status pernikahan Anda.' }}</p>
                                                 </div>
                                                 <div class="d-grid gap-3">
-                                                    @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_MARRIAGE_BOOK])
-                                                    @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_DIVORCE_CERTIFICATE])
+                                                    <div data-marital-document-type="marriage" {{ $maritalDocumentType === 'marriage' ? '' : 'hidden' }}>
+                                                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_MARRIAGE_BOOK])
+                                                    </div>
+                                                    <div data-marital-document-type="divorce" {{ $maritalDocumentType === 'divorce' ? '' : 'hidden' }}>
+                                                        @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_DIVORCE_CERTIFICATE])
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -597,7 +605,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label cv-required-label">No. HP <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
-                                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $profile->phone) }}" placeholder="08xxxxxxxxxx">
+                                        <input type="text" name="phone" inputmode="tel" maxlength="20" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $profile->phone) }}" placeholder="08xxxxxxxxxx" data-indonesian-phone>
                                         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
@@ -666,6 +674,16 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <span class="badge badge-vpeople ms-1">V-People</span>
                                         <textarea name="ktp_address" rows="3" class="form-control @error('ktp_address') is-invalid @enderror" placeholder="Alamat lengkap sesuai KTP" data-ktp-address>{{ $ktpAddressValue }}</textarea>
                                         @error('ktp_address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label cv-required-label">RT <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
+                                        <input type="text" name="rt" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="form-control @error('rt') is-invalid @enderror" value="{{ old('rt', $profile->rt) }}" placeholder="000" data-address-number>
+                                        @error('rt') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label cv-required-label">RW <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
+                                        <input type="text" name="rw" inputmode="numeric" pattern="[0-9]{1,3}" maxlength="3" class="form-control @error('rw') is-invalid @enderror" value="{{ old('rw', $profile->rw) }}" placeholder="000" data-address-number>
+                                        @error('rw') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label cv-required-label">Provinsi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
@@ -1147,6 +1165,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
             <button type="button" class="btn btn-primary" data-wizard-next data-guide-target="wizard-next" data-bs-toggle="tooltip" data-bs-title="Lanjut ke step berikutnya setelah step saat ini lengkap.">
                 Berikutnya <i class="bi bi-chevron-right ms-1"></i>
             </button>
+            <span class="small text-muted d-none" data-autosave-status aria-live="polite"></span>
             <button type="submit" class="btn btn-outline-primary" formaction="{{ route('cv.preview.save') }}" data-wizard-submit-skip-documents data-loading-text="Menyimpan dan membuka preview..." data-bs-toggle="tooltip" data-bs-title="Simpan data lalu buka tampilan preview CV.">
                 <i class="bi bi-eye me-1"></i> Simpan & Preview
             </button>
@@ -1229,15 +1248,15 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
 ])
 
 <div class="modal fade" id="photoCropModal" tabindex="-1" aria-labelledby="photoCropModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title h5" id="photoCropModalLabel">Crop Foto CV</h2>
+                <h2 class="modal-title h5" id="photoCropModalLabel">Crop Pas Foto</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
                 <div class="cv-photo-crop-area">
-                    <img src="" alt="Crop foto CV" data-photo-crop-image>
+                    <img src="" alt="Crop pas foto" data-photo-crop-image>
                 </div>
                 <div class="cv-photo-crop-toolbar">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-crop-action="zoom-in">

@@ -164,12 +164,12 @@ class CvDocumentTest extends TestCase
         $user = User::factory()->create();
         $profileId = $this->createProfileFor($user);
 
-        Storage::disk('local')->put('cv-documents/' . $user->id . '/kk.pdf', 'dummy-pdf-content');
-        DB::table('cv_documents')->insert([
+        Storage::disk('local')->put('cv-documents/' . $user->id . '/certificate.pdf', 'dummy-pdf-content');
+        $documentId = DB::table('cv_documents')->insertGetId([
             'cv_profile_id' => $profileId,
-            'type' => 'family_card',
-            'original_name' => 'kk.pdf',
-            'file_path' => 'cv-documents/' . $user->id . '/kk.pdf',
+            'type' => 'certificate',
+            'original_name' => 'certificate.pdf',
+            'file_path' => 'cv-documents/' . $user->id . '/certificate.pdf',
             'mime_type' => 'application/pdf',
             'file_size' => 17,
             'uploaded_at' => now(),
@@ -179,7 +179,7 @@ class CvDocumentTest extends TestCase
 
         $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
             'remove_documents' => [
-                'family_card' => '1',
+                'certificate' => [$documentId => '1'],
             ],
         ]));
 
@@ -187,9 +187,9 @@ class CvDocumentTest extends TestCase
 
         $this->assertDatabaseMissing('cv_documents', [
             'cv_profile_id' => $profileId,
-            'type' => 'family_card',
+            'type' => 'certificate',
         ]);
-        Storage::disk('local')->assertMissing('cv-documents/' . $user->id . '/kk.pdf');
+        Storage::disk('local')->assertMissing('cv-documents/' . $user->id . '/certificate.pdf');
     }
 
     public function test_employee_can_save_physical_profile_fields_from_cv_draft_form()
@@ -272,6 +272,30 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_step_autosave_normalizes_phone_and_rt_rw(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $payload = $this->validCvPayload([
+            'phone' => '+62 857-9731-0490',
+            'rt' => '7',
+            'rw' => '12',
+        ]);
+
+        unset($payload['profile_summary'], $payload['technical_skills'], $payload['experiences'], $payload['educations']);
+
+        $response = $this->actingAs($user)->postJson('/cv/autosave', $payload);
+
+        $response->assertOk()->assertJsonStructure(['message', 'saved_at']);
+        $this->assertDatabaseHas('cv_profiles', [
+            'user_id' => $user->id,
+            'phone' => '085797310490',
+            'rt' => '007',
+            'rw' => '012',
+        ]);
+    }
+
     public function test_personal_step_rejects_missing_address_job_and_emergency_contact_data()
     {
         $user = User::factory()->create();
@@ -337,18 +361,103 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_starred_fields_from_step_two_onwards_are_required(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/draft', $this->validCvPayload([
+            'profile_summary' => '',
+            'technical_skills' => '',
+            'experiences' => [[
+                'position' => 'HR Staff',
+            ]],
+            'educations' => [[
+                'level' => 'S1',
+            ]],
+            'documents' => [
+                'diploma' => [],
+            ],
+        ]));
+
+        $response->assertRedirect('/cv/edit');
+        $response->assertSessionHasErrors([
+            'profile_summary',
+            'technical_skills',
+            'experiences.0.company',
+            'experiences.0.department',
+            'experiences.0.division',
+            'experiences.0.start_month',
+            'experiences.0.end_month',
+            'experiences.0.responsibilities',
+            'educations.0.institution',
+            'educations.0.major',
+            'educations.0.graduation_year',
+            'documents.diploma',
+        ]);
+    }
+
+    public function test_required_diploma_cannot_be_removed_without_a_replacement(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $profileId = $this->createProfileFor($user);
+        $documentId = DB::table('cv_documents')->insertGetId([
+            'cv_profile_id' => $profileId,
+            'type' => 'diploma',
+            'original_name' => 'ijazah-lama.pdf',
+            'file_path' => 'cv-documents/' . $user->id . '/ijazah-lama.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 100,
+            'uploaded_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/draft', $this->validCvPayload([
+            'documents' => ['diploma' => []],
+            'remove_documents' => [
+                'diploma' => [$documentId => '1'],
+            ],
+        ]));
+
+        $response->assertRedirect('/cv/edit');
+        $response->assertSessionHasErrors('documents.diploma');
+        $this->assertDatabaseHas('cv_documents', ['id' => $documentId]);
+    }
+
     private function validCvPayload(array $overrides = []): array
     {
-        return array_merge([
+        $requiredDocuments = [
+            'ktp' => UploadedFile::fake()->create('ktp.pdf', 100, 'application/pdf'),
+            'family_card' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+            'npwp' => UploadedFile::fake()->create('npwp.pdf', 100, 'application/pdf'),
+            'diploma' => [UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf')],
+        ];
+        $payload = [
             'full_name' => 'Budi Santoso',
             'birth_date' => '1990-01-01',
             'birth_place' => 'Kendari',
+            'ktp_number' => '7401010101010101',
+            'family_card_number' => '7401010101010102',
+            'bank_account_number' => '1234567890',
+            'npwp_number' => '123456789012345',
             'gender' => 'L',
+            'height_cm' => '170',
+            'weight_kg' => '65',
+            'blood_type' => CvProfile::BLOOD_TYPES[0],
+            'religion' => CvProfile::RELIGIONS[0],
             'marital_status' => 'Belum Kawin',
+            'mother_name' => 'Siti Aminah',
+            'photo' => UploadedFile::fake()->image('photo.jpg', 300, 400),
+            'documents' => $requiredDocuments,
             'address' => 'Jl. Industri No. 1',
             'phone' => '081234567890',
             'email' => 'budi@example.com',
             'ktp_address' => 'Jl. KTP No. 10',
+            'rt' => '007',
+            'rw' => '012',
             'province_id' => '74',
             'regency_id' => '7401',
             'district_id' => '7401010',
@@ -358,6 +467,21 @@ class CvDocumentTest extends TestCase
             'department' => 'Human Resources',
             'division' => 'HR Operations',
             'position' => 'HR Staff',
+            'experiences' => [[
+                'position' => 'HR Staff',
+                'company' => 'PT VDNI',
+                'department' => 'Human Resources',
+                'division' => 'HR Operations',
+                'start_month' => '2020-01',
+                'is_current' => '1',
+                'responsibilities' => 'Mengelola administrasi karyawan',
+            ]],
+            'educations' => [[
+                'level' => 'S1',
+                'institution' => 'Universitas Test',
+                'major' => 'Manajemen',
+                'graduation_year' => '2019',
+            ]],
             'emergency_contacts' => [[
                 'phone' => '081234567890',
                 'name' => 'Siti Santoso',
@@ -365,7 +489,13 @@ class CvDocumentTest extends TestCase
             ]],
             'profile_summary' => 'Operator produksi berpengalaman.',
             'technical_skills' => 'Microsoft Excel',
-        ], $overrides);
+        ];
+
+        if (isset($overrides['documents'])) {
+            $overrides['documents'] = array_merge($requiredDocuments, $overrides['documents']);
+        }
+
+        return array_replace($payload, $overrides);
     }
 
     private function createProfileFor(User $user): int
@@ -427,6 +557,8 @@ class CvDocumentTest extends TestCase
             $table->string('village_id', 32)->nullable();
             $table->string('village_name')->nullable();
             $table->text('ktp_address')->nullable();
+            $table->string('rt', 3)->nullable();
+            $table->string('rw', 3)->nullable();
             $table->boolean('domicile_same_as_ktp')->default(false);
             $table->text('address')->nullable();
             $table->string('phone', 64)->nullable();

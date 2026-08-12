@@ -3,6 +3,8 @@
 namespace Tests\Unit;
 
 use App\Http\Requests\SaveCvProfileRequest;
+use App\Models\CvProfile;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
@@ -84,8 +86,23 @@ class CvInterestsAndAchievementsTest extends TestCase
         $request = SaveCvProfileRequest::create('/cv/draft', 'POST', array_merge([
             'full_name' => 'Karyawan Test',
             'birth_date' => '1990-01-01',
+            'ktp_number' => '7401010101010101',
+            'family_card_number' => '7401010101010102',
+            'bank_account_number' => '1234567890',
+            'npwp_number' => '123456789012345',
+            'birth_place' => 'Kendari',
+            'gender' => 'L',
+            'height_cm' => '170',
+            'weight_kg' => '65',
+            'blood_type' => CvProfile::BLOOD_TYPES[0],
+            'religion' => CvProfile::RELIGIONS[0],
+            'marital_status' => 'Belum Kawin',
+            'mother_name' => 'Ibu Test',
+            'phone' => '081234567890',
             'email' => 'karyawan@example.com',
             'ktp_address' => 'Jl. KTP No. 10',
+            'rt' => '007',
+            'rw' => '012',
             'province_id' => '74',
             'regency_id' => '7401',
             'district_id' => '7401010',
@@ -95,6 +112,23 @@ class CvInterestsAndAchievementsTest extends TestCase
             'department' => 'Human Resources',
             'division' => 'HR Operations',
             'position' => 'HR Staff',
+            'profile_summary' => 'Profesional HR berpengalaman.',
+            'technical_skills' => 'Microsoft Excel',
+            'experiences' => [[
+                'position' => 'HR Staff',
+                'company' => 'PT VDNI',
+                'department' => 'Human Resources',
+                'division' => 'HR Operations',
+                'start_month' => '2020-01',
+                'is_current' => '1',
+                'responsibilities' => 'Mengelola administrasi karyawan',
+            ]],
+            'educations' => [[
+                'level' => 'S1',
+                'institution' => 'Universitas Test',
+                'major' => 'Manajemen',
+                'graduation_year' => '2019',
+            ]],
             'emergency_contacts' => [[
                 'phone' => '081234567890',
                 'name' => 'Siti Santoso',
@@ -102,6 +136,13 @@ class CvInterestsAndAchievementsTest extends TestCase
             ]],
         ], $data));
         $request->setContainer($this->app);
+        $request->files->set('photo', UploadedFile::fake()->image('photo.jpg', 300, 400));
+        $request->files->set('documents', [
+            'ktp' => UploadedFile::fake()->create('ktp.pdf', 100, 'application/pdf'),
+            'family_card' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+            'npwp' => UploadedFile::fake()->create('npwp.pdf', 100, 'application/pdf'),
+            'diploma' => [UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf')],
+        ]);
 
         $validator = Validator::make($request->all(), $request->rules(), $request->messages());
         $request->withValidator($validator);
