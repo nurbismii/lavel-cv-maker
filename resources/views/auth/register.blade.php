@@ -135,5 +135,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/password-toggle.js') }}?v={{ filemtime(public_path('js/password-toggle.js')) }}"></script>
+<script src="{{ \App\Support\VersionedAsset::url('js/password-toggle.js') }}"></script>
 @endpush

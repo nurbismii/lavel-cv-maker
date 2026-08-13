@@ -3,7 +3,7 @@
 @section('title', 'Form CV - Vitae')
 
 @push('styles')
-<link href="{{ asset('vendor/cropperjs/cropper.min.css') }}?v={{ filemtime(public_path('vendor/cropperjs/cropper.min.css')) }}" rel="stylesheet">
+<link href="{{ \App\Support\VersionedAsset::url('vendor/cropperjs/cropper.min.css') }}" rel="stylesheet">
 @endpush
 
 @php
@@ -430,9 +430,13 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                                     @error('photo') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
 
                                                     @if ($profile->photo_path)
-                                                    <div class="form-check mt-2">
-                                                        <input type="checkbox" class="form-check-input" id="removePhoto" name="remove_photo" value="1" data-photo-remove>
-                                                        <label class="form-check-label" for="removePhoto">Hapus foto saat menyimpan</label>
+                                                    <div class="cv-deferred-delete mt-2">
+                                                        <input type="checkbox" class="btn-check" id="removePhoto" name="remove_photo" value="1" data-photo-remove data-deferred-remove {{ old('remove_photo') ? 'checked' : '' }}>
+                                                        <label class="btn btn-outline-danger btn-sm cv-deferred-delete-action" for="removePhoto" title="Tandai foto untuk dihapus" data-bs-toggle="tooltip" data-bs-title="Tandai foto untuk dihapus">
+                                                            <span class="cv-delete-action-default"><i class="bi bi-trash me-1"></i>Hapus foto</span>
+                                                            <span class="cv-delete-action-undo"><i class="bi bi-arrow-counterclockwise me-1"></i>Batalkan</span>
+                                                        </label>
+                                                        <small class="cv-deferred-delete-status">Foto akan dihapus saat disimpan. Unggah foto pengganti karena pas foto wajib.</small>
                                                     </div>
                                                     @endif
                                                 </div>
@@ -1163,11 +1167,13 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                             </div>
 
                             @if ($document)
-                            <div class="form-check cv-document-remove mt-3">
-                                <input class="form-check-input" type="checkbox" name="remove_documents[{{ $documentType }}]" value="1" id="{{ $removeDocumentId }}" {{ old('remove_documents.' . $documentType) ? 'checked' : '' }}>
-                                <label class="form-check-label" for="{{ $removeDocumentId }}">
-                                    Hapus file ini saat menyimpan draft
+                            <div class="cv-document-remove cv-deferred-delete mt-3">
+                                <input class="btn-check" type="checkbox" name="remove_documents[{{ $documentType }}]" value="1" id="{{ $removeDocumentId }}" data-deferred-remove {{ old('remove_documents.' . $documentType) ? 'checked' : '' }}>
+                                <label class="btn btn-outline-danger btn-sm cv-deferred-delete-action" for="{{ $removeDocumentId }}" title="Tandai file untuk dihapus" data-bs-toggle="tooltip" data-bs-title="Tandai file untuk dihapus">
+                                    <span class="cv-delete-action-default"><i class="bi bi-trash me-1"></i>Hapus file</span>
+                                    <span class="cv-delete-action-undo"><i class="bi bi-arrow-counterclockwise me-1"></i>Batalkan</span>
                                 </label>
+                                <small class="cv-deferred-delete-status">File akan dihapus saat disimpan.</small>
                             </div>
                             @endif
                         </section>
@@ -1313,6 +1319,6 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
 @endsection
 
 @push('scripts')
-<script src="{{ asset('vendor/cropperjs/cropper.min.js') }}?v={{ filemtime(public_path('vendor/cropperjs/cropper.min.js')) }}"></script>
-<script src="{{ asset('js/cv-form.js') }}?v={{ filemtime(public_path('js/cv-form.js')) }}"></script>
+<script src="{{ \App\Support\VersionedAsset::url('vendor/cropperjs/cropper.min.js') }}"></script>
+<script src="{{ \App\Support\VersionedAsset::url('js/cv-form.js') }}"></script>
 @endpush

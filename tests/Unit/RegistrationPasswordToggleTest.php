@@ -15,6 +15,7 @@ class RegistrationPasswordToggleTest extends TestCase
         $this->assertStringContainsString('data-password-target="password"', $view);
         $this->assertStringContainsString('data-password-target="password_confirmation"', $view);
         $this->assertSame(2, substr_count($view, 'aria-pressed="false"'));
+        $this->assertStringContainsString("VersionedAsset::url('js/password-toggle.js')", $view);
         $this->assertStringContainsString("input.type = showPassword ? 'text' : 'password';", $script);
         $this->assertStringContainsString("icon.classList.toggle('bi-eye-slash', showPassword);", $script);
     }

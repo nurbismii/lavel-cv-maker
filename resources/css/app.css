@@ -447,6 +447,49 @@ body {
     min-width: 0;
 }
 
+.cv-deferred-delete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.cv-deferred-delete-action {
+    flex: 0 0 auto;
+}
+
+.cv-delete-action-undo,
+.cv-deferred-delete-status {
+    display: none;
+}
+
+.cv-deferred-delete-status {
+    color: #991b1b !important;
+    font-weight: 600;
+}
+
+.cv-deferred-delete .btn-check:checked + .cv-deferred-delete-action .cv-delete-action-default {
+    display: none;
+}
+
+.cv-deferred-delete .btn-check:checked + .cv-deferred-delete-action .cv-delete-action-undo,
+.cv-deferred-delete .btn-check:checked ~ .cv-deferred-delete-status {
+    display: inline;
+}
+
+.cv-deferred-delete .btn-check:checked + .cv-deferred-delete-action {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.cv-document-remove {
+    padding: .75rem;
+    border: 1px dashed rgba(220, 38, 38, .28);
+    border-radius: 8px;
+    background: #fff7ed;
+}
+
 .cv-photo-crop-area {
     height: clamp(560px, 72vh, 760px);
     overflow: hidden;
@@ -1625,6 +1668,16 @@ body.is-cv-guide-focus-mode .cv-guide-focus-layer .btn:not(.cv-guide-highlight) 
 .cv-linked-document-current small {
     flex: 0 0 auto;
     color: #6c757d;
+}
+
+.cv-linked-document-current .cv-deferred-delete {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+
+.cv-linked-document-current .cv-deferred-delete-status {
+    flex-basis: 100%;
+    text-align: right;
 }
 
 .cv-document-file-input-list {

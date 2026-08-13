@@ -4,7 +4,7 @@
     $documentOption = $documentOptions[$documentType];
     $acceptsMultipleFiles = \App\Models\CvDocument::acceptsMultipleFiles($documentType);
     $documentErrorKey = 'documents.' . $documentType;
-    $removeDocumentId = 'remove_document_' . $documentType;
+    $removeDocumentId = 'remove_linked_document_' . $documentType;
     $documentSize = $document && $document->file_size ? number_format($document->file_size / 1024, 0) . ' KB' : null;
 @endphp
 
@@ -28,10 +28,14 @@
         </a>
         @if ($documentSize)<small>{{ $documentSize }}</small>@endif
         @if ($acceptsMultipleFiles)
-        <input class="btn-check" type="checkbox" name="remove_documents[{{ $documentType }}][{{ $document->id }}]" value="1" id="remove_document_{{ $documentType }}_{{ $document->id }}" {{ old('remove_documents.' . $documentType . '.' . $document->id) ? 'checked' : '' }}>
-        <label class="btn btn-outline-danger btn-sm" for="remove_document_{{ $documentType }}_{{ $document->id }}" title="Hapus file ini saat menyimpan" data-bs-toggle="tooltip" data-bs-title="Hapus file ini saat menyimpan">
-            <i class="bi bi-trash"></i><span class="visually-hidden">Hapus {{ $document->original_name }}</span>
-        </label>
+        <div class="cv-deferred-delete">
+            <input class="btn-check" type="checkbox" name="remove_documents[{{ $documentType }}][{{ $document->id }}]" value="1" id="remove_document_{{ $documentType }}_{{ $document->id }}" data-deferred-remove {{ old('remove_documents.' . $documentType . '.' . $document->id) ? 'checked' : '' }}>
+            <label class="btn btn-outline-danger btn-sm cv-deferred-delete-action" for="remove_document_{{ $documentType }}_{{ $document->id }}" title="Tandai file untuk dihapus" data-bs-toggle="tooltip" data-bs-title="Tandai file untuk dihapus">
+                <span class="cv-delete-action-default"><i class="bi bi-trash"></i><span class="visually-hidden">Hapus {{ $document->original_name }}</span></span>
+                <span class="cv-delete-action-undo"><i class="bi bi-arrow-counterclockwise me-1"></i>Batalkan</span>
+            </label>
+            <small class="cv-deferred-delete-status">Akan dihapus saat disimpan.</small>
+        </div>
         @endif
     </div>
     @endforeach
@@ -58,9 +62,13 @@
     @error($documentErrorKey) <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
 
     @if ($document && !$acceptsMultipleFiles)
-    <div class="form-check mt-2">
-        <input class="form-check-input" type="checkbox" name="remove_documents[{{ $documentType }}]" value="1" id="{{ $removeDocumentId }}" {{ old('remove_documents.' . $documentType) ? 'checked' : '' }}>
-        <label class="form-check-label small" for="{{ $removeDocumentId }}">Hapus saat menyimpan</label>
+    <div class="cv-deferred-delete mt-2">
+        <input class="btn-check" type="checkbox" name="remove_documents[{{ $documentType }}]" value="1" id="{{ $removeDocumentId }}" data-deferred-remove {{ old('remove_documents.' . $documentType) ? 'checked' : '' }}>
+        <label class="btn btn-outline-danger btn-sm cv-deferred-delete-action" for="{{ $removeDocumentId }}" title="Tandai file untuk dihapus" data-bs-toggle="tooltip" data-bs-title="Tandai file untuk dihapus">
+            <span class="cv-delete-action-default"><i class="bi bi-trash me-1"></i>Hapus file</span>
+            <span class="cv-delete-action-undo"><i class="bi bi-arrow-counterclockwise me-1"></i>Batalkan</span>
+        </label>
+        <small class="cv-deferred-delete-status">File akan dihapus saat disimpan.</small>
     </div>
     @endif
 

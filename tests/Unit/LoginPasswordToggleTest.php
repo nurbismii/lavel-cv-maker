@@ -14,6 +14,6 @@ class LoginPasswordToggleTest extends TestCase
         $this->assertStringContainsString('data-password-target="password"', $view);
         $this->assertStringContainsString('aria-label="Tampilkan password"', $view);
         $this->assertStringContainsString('aria-pressed="false"', $view);
-        $this->assertStringContainsString("asset('js/password-toggle.js')", $view);
+        $this->assertStringContainsString("VersionedAsset::url('js/password-toggle.js')", $view);
     }
 }

@@ -3211,6 +3211,14 @@
             syncOptionToggle(event.target);
         }
 
+        if (event.target.matches('[data-deferred-remove][name]')) {
+            document.querySelectorAll('[data-deferred-remove]').forEach(function (control) {
+                if (control !== event.target && control.name === event.target.name) {
+                    control.checked = event.target.checked;
+                }
+            });
+        }
+
         if (event.target.matches('[data-photo-remove]')) {
             setPhotoPreview(event.target.checked ? null : (photoElements().frame.dataset.photoOriginal || null));
         }

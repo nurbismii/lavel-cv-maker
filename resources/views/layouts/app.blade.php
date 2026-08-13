@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="{{ file_exists(public_path('mix-manifest.json')) ? mix('css/app.css') : asset('css/app.css') }}" rel="stylesheet">
+    <link href="{{ \App\Support\VersionedAsset::url('css/app.css') }}" rel="stylesheet">
     @stack('styles')
 </head>
 
@@ -89,7 +89,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.4/dist/sweetalert2.all.min.js"></script>
-    <script src="{{ file_exists(public_path('mix-manifest.json')) ? mix('js/app.js') : asset('js/app.js') }}"></script>
+    <script src="{{ \App\Support\VersionedAsset::url('js/app.js') }}"></script>
     @stack('scripts')
 </body>
 

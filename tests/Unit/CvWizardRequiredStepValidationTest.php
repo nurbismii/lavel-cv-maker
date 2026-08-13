@@ -59,6 +59,22 @@ class CvWizardRequiredStepValidationTest extends TestCase
         $this->assertStringNotContainsString('bi-download me-1"></i> Download', $edit);
     }
 
+    public function test_existing_files_use_deferred_trash_actions_instead_of_visible_checkboxes()
+    {
+        $edit = $this->viewFile('cv/edit.blade.php');
+        $linkedDocumentUpload = $this->viewFile('cv/partials/linked-document-upload.blade.php');
+        $script = $this->script();
+
+        $this->assertStringContainsString('data-photo-remove data-deferred-remove', $edit);
+        $this->assertStringContainsString('cv-delete-action-default', $edit);
+        $this->assertStringContainsString('cv-delete-action-undo', $edit);
+        $this->assertStringContainsString("'remove_linked_document_'", $linkedDocumentUpload);
+        $this->assertStringContainsString('data-deferred-remove', $linkedDocumentUpload);
+        $this->assertStringContainsString("control.name === event.target.name", $script);
+        $this->assertStringNotContainsString('Hapus foto saat menyimpan', $edit);
+        $this->assertStringNotContainsString('Hapus saat menyimpan', $linkedDocumentUpload);
+    }
+
     public function test_cv_form_marks_blocking_fields_as_required()
     {
         $edit = $this->viewFile('cv/edit.blade.php');
