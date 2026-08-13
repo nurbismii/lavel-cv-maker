@@ -134,9 +134,10 @@ class VPeopleOrganizationService
 
         $query = DB::connection('vpeople')
             ->table('employees')
-            ->selectRaw("DISTINCT TRIM(COALESCE(NULLIF(jabatan, ''), NULLIF(posisi, ''))) as name")
+            ->selectRaw('DISTINCT TRIM(posisi) as name')
             ->where('status_resign', VPeopleService::ACTIVE_RESIGN_STATUS)
-            ->whereRaw("TRIM(COALESCE(NULLIF(jabatan, ''), NULLIF(posisi, ''))) <> ''");
+            ->whereNotNull('posisi')
+            ->whereRaw("TRIM(posisi) <> ''");
 
         if ($divisionId) {
             $query->where('divisi_id', $divisionId);

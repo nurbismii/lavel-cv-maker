@@ -96,6 +96,7 @@
                 { selector: '[name="work_area"]', label: 'Area kerja' },
                 { selector: '[name="department"]', label: 'Departemen' },
                 { selector: '[name="division"]', label: 'Divisi' },
+                { selector: '[name="job_title_choice"]', label: 'Jabatan' },
                 { selector: '[name="position"]', label: 'Posisi' },
             ],
         },

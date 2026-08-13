@@ -67,7 +67,7 @@ class VPeopleOrganizationServiceTest extends TestCase
         ], $options);
     }
 
-    public function test_positions_keep_the_legacy_department_and_division_lookup(): void
+    public function test_positions_use_position_column_and_respect_selected_division(): void
     {
         DB::connection('vpeople')->table('employees')->insert([
             ['status_resign' => 'AKTIF', 'jabatan' => 'Supervisor', 'posisi' => 'Produksi', 'departemen_id' => 1, 'divisi_id' => 1],
@@ -79,7 +79,7 @@ class VPeopleOrganizationServiceTest extends TestCase
 
         $this->assertSame([
             ['id' => 'Operator', 'name' => 'Operator'],
-            ['id' => 'Supervisor', 'name' => 'Supervisor'],
+            ['id' => 'Produksi', 'name' => 'Produksi'],
         ], $options);
     }
 }

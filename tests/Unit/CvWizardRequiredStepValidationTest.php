@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Http\Requests\SaveCvProfileRequest;
 use App\Models\CvDocument;
 use Tests\TestCase;
 
@@ -91,10 +92,16 @@ class CvWizardRequiredStepValidationTest extends TestCase
             'Area Kerja',
             'Departemen',
             'Divisi',
+            'Jabatan',
             'Posisi',
         ] as $label) {
             $this->assertRequiredLabel($edit, $label);
         }
+
+        $this->assertStringContainsString('{ selector: \'[name="job_title_choice"]\', label: \'Jabatan\' }', $this->script());
+
+        $request = SaveCvProfileRequest::create('/cv/draft', 'POST');
+        $this->assertContains('required', $request->rules()['job_title']);
 
         $emergencyContact = $this->viewFile('cv/partials/emergency-contact-row.blade.php');
 

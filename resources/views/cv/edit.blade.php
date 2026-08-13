@@ -824,9 +824,9 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('division_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label">Jabatan</label>
+                                        <label class="form-label cv-required-label" for="jobTitleSelect">Jabatan <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
                                         <span class="badge badge-vpeople ms-1">Pilihan V-People</span>
-                                        <select id="jobTitleSelect" name="job_title_choice" class="form-select @error('job_title') is-invalid @enderror" data-organization-target="#jobTitleHidden" data-organization-id-target="#jobTitleIdHidden" data-organization-placeholder="Pilih jabatan" {{ $organizationOptions['selected_department_id'] || $selectedJobTitle ? '' : 'disabled' }}>
+                                        <select id="jobTitleSelect" name="job_title_choice" class="form-select @error('job_title') is-invalid @enderror" data-organization-target="#jobTitleHidden" data-organization-id-target="#jobTitleIdHidden" data-organization-placeholder="Pilih jabatan" required aria-required="true" {{ $organizationOptions['selected_department_id'] || $selectedJobTitle ? '' : 'disabled' }}>
                                             <option value="">Pilih jabatan</option>
                                             @foreach ($organizationOptions['job_titles'] as $jobTitleOption)
                                             <option value="{{ $jobTitleOption['name'] }}" data-option-id="{{ $jobTitleOption['id'] }}" {{ strcasecmp($jobTitleOption['name'], (string) $selectedJobTitle) === 0 ? 'selected' : '' }}>

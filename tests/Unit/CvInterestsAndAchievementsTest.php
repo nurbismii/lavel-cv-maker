@@ -111,6 +111,7 @@ class CvInterestsAndAchievementsTest extends TestCase
             'work_area' => 'VDNI',
             'department' => 'Human Resources',
             'division' => 'HR Operations',
+            'job_title' => 'STAFF',
             'position' => 'HR Staff',
             'profile_summary' => 'Profesional HR berpengalaman.',
             'technical_skills' => 'Microsoft Excel',
