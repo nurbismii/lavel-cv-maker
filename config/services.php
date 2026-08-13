@@ -33,6 +33,8 @@ return [
     'vpeople' => [
         'account_sync_enabled' => env('VPEOPLE_ACCOUNT_SYNC_ENABLED', false),
         'login_enabled' => env('VPEOPLE_LOGIN_ENABLED', false),
+        'nik_hash_key' => env('VPEOPLE_NIK_HASH_KEY'),
+        'integration_token' => env('VPEOPLE_INTEGRATION_TOKEN'),
         'default_role_id' => env('VPEOPLE_DEFAULT_ROLE_ID', 16),
         'default_status' => env('VPEOPLE_DEFAULT_STATUS', 'aktif'),
     ],

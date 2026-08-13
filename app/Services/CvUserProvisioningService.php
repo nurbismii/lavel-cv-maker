@@ -6,6 +6,7 @@ use App\Models\CvEducation;
 use App\Models\CvProfile;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -57,7 +58,63 @@ class CvUserProvisioningService
 
     public function hashNik(string $nik): string
     {
-        return hash_hmac('sha256', $nik, config('app.key'));
+        return hash_hmac('sha256', $nik, $this->nikHashKey());
+    }
+
+    public function legacyHashNik(string $nik): string
+    {
+        return hash_hmac('sha256', $nik, (string) config('app.key'));
+    }
+
+    public function usesDedicatedNikHashKey(): bool
+    {
+        return filled(config('services.vpeople.nik_hash_key'));
+    }
+
+    public function hashCandidates(string $nik): array
+    {
+        return array_values(array_unique([
+            $this->hashNik($nik),
+            $this->legacyHashNik($nik),
+        ]));
+    }
+
+    public function findAndMigrateUserByNik(string $nik): ?User
+    {
+        $newHash = $this->hashNik($nik);
+        $user = User::where('vpeople_nik_hash', $newHash)->first();
+
+        if ($user || !$this->usesDedicatedNikHashKey()) {
+            return $user;
+        }
+
+        $legacyHash = $this->legacyHashNik($nik);
+        $user = User::where('vpeople_nik_hash', $legacyHash)->first();
+
+        if (!$user) {
+            return null;
+        }
+
+        try {
+            $user->forceFill(['vpeople_nik_hash' => $newHash])->save();
+        } catch (QueryException $exception) {
+            $migratedUser = User::where('vpeople_nik_hash', $newHash)->first();
+
+            if ($migratedUser) {
+                return $migratedUser;
+            }
+
+            throw $exception;
+        }
+
+        return $user;
+    }
+
+    private function nikHashKey(): string
+    {
+        $dedicatedKey = config('services.vpeople.nik_hash_key');
+
+        return filled($dedicatedKey) ? (string) $dedicatedKey : (string) config('app.key');
     }
 
     private function createEducationPrefill(CvProfile $profile, array $employee): void

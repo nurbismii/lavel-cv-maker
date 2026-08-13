@@ -102,17 +102,17 @@ class LoginController extends Controller
         $account = $vpeopleLogin['account'];
         $employee = $vpeopleLogin['employee'];
         $email = strtolower(trim($account['email']));
-        $nikHash = $provisioningService->hashNik($employee['nik']);
-
-        $existingUser = User::where('vpeople_nik_hash', $nikHash)->first();
+        $existingUser = $provisioningService->findAndMigrateUserByNik($employee['nik']);
 
         if ($existingUser) {
             return $existingUser;
         }
 
-        return DB::transaction(function () use ($email, $employee, $nikHash, $provisioningService) {
-            if (User::where('vpeople_nik_hash', $nikHash)->exists()) {
-                return User::where('vpeople_nik_hash', $nikHash)->first();
+        return DB::transaction(function () use ($email, $employee, $provisioningService) {
+            $existingUser = $provisioningService->findAndMigrateUserByNik($employee['nik']);
+
+            if ($existingUser) {
+                return $existingUser;
             }
 
             if (User::where('email', $email)->exists()) {

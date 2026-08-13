@@ -50,9 +50,7 @@ class RegisterController extends Controller
                 ]);
         }
 
-        $nikHash = $provisioningService->hashNik($employee['nik']);
-
-        if (User::where('vpeople_nik_hash', $nikHash)->exists()) {
+        if ($provisioningService->findAndMigrateUserByNik($employee['nik'])) {
             return back()
                 ->withInput($request->except(['password', 'password_confirmation']))
                 ->withErrors([
