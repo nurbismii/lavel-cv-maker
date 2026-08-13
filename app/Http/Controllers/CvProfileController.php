@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -180,10 +181,16 @@ class CvProfileController extends Controller
                 'ktp_address' => $profile->ktp_address ?: $employee['ktp_address'],
                 'domicile_same_as_ktp' => $profile->domicile_same_as_ktp ?: $employee['domicile_same_as_ktp'],
                 'address' => $profile->address ?: $employee['address'],
-                'work_area' => $profile->work_area ?: $employee['work_area'],
-                'department' => $profile->department ?: $employee['department'],
-                'division' => $profile->division ?: $employee['division'],
-                'position' => $profile->position ?: $employee['position'],
+                'work_area' => $employee['work_area'] ?: $profile->work_area,
+                'department' => $employee['department'] ?: $profile->department,
+                'division' => $employee['division'] ?: $profile->division,
+                'job_title' => $employee['job_title'] ?: $profile->job_title,
+                'position' => $employee['position'] ?: $profile->position,
+                'job_title_id' => $employee['job_title_id'],
+                'organization_position_id' => $employee['organization_position_id'],
+                'job_level_code' => $employee['job_level_code'],
+                'job_level_rank' => $employee['job_level_rank'],
+                'organization_updated_at' => $employee['organization_updated_at'],
                 'current_job_entry_date' => $profile->current_job_entry_date ?: $employee['entry_date'],
             ])->save();
 
@@ -203,6 +210,7 @@ class CvProfileController extends Controller
         VPeopleLocationService $locationService
     ): void
     {
+        $hasVpeopleLink = $this->vpeopleNik($request) !== null;
         $locationSelection = $this->resolveLocationSelection($request, $locationService);
         [$photoPath, $oldPhotoPath, $newPhotoPath] = $this->preparePhotoUpdate($request, $profile);
         $documentUploads = $this->prepareDocumentUploads($request, $profile);
@@ -216,7 +224,7 @@ class CvProfileController extends Controller
         $oldDocumentPaths = [];
 
         try {
-            DB::transaction(function () use ($request, $profile, $locationSelection, $photoPath, $documentUploads, &$oldDocumentPaths) {
+            DB::transaction(function () use ($request, $profile, $hasVpeopleLink, $locationSelection, $photoPath, $documentUploads, &$oldDocumentPaths) {
                 $requiresFamilyDetails = $this->requiresFamilyDetails($request->input('marital_status'));
                 $hasChildren = $requiresFamilyDetails && $request->boolean('has_children');
                 $ktpAddress = $this->nullableTrim($request->input('ktp_address'));
@@ -224,6 +232,13 @@ class CvProfileController extends Controller
                 $domicileAddress = $domicileSameAsKtp
                     ? $ktpAddress
                     : $this->nullableTrim($request->input('address'));
+                $organizationPositionData = Schema::hasColumn('cv_profiles', 'organization_position_id')
+                    ? [
+                        'organization_position_id' => $hasVpeopleLink
+                            ? $profile->organization_position_id
+                            : ($request->filled('organization_position_id') ? (int) $request->input('organization_position_id') : null),
+                    ]
+                    : [];
 
                 $profile->update(array_merge([
                     'status' => CvProfile::STATUS_DRAFT,
@@ -260,10 +275,12 @@ class CvProfileController extends Controller
                     'instagram' => $this->nullableTrim($request->input('instagram')),
                     'linkedin' => $this->nullableTrim($request->input('linkedin')),
                     'facebook' => $this->nullableTrim($request->input('facebook')),
-                    'work_area' => $this->workAreaValue($request),
-                    'department' => $this->organizationValue($request, 'department'),
-                    'division' => $this->organizationValue($request, 'division'),
-                    'position' => $this->organizationValue($request, 'position'),
+                    'work_area' => $hasVpeopleLink ? $profile->work_area : $this->workAreaValue($request),
+                    'department' => $hasVpeopleLink ? $profile->department : $this->organizationValue($request, 'department'),
+                    'division' => $hasVpeopleLink ? $profile->division : $this->organizationValue($request, 'division'),
+                    'job_title' => $hasVpeopleLink ? $profile->job_title : $this->organizationValue($request, 'job_title'),
+                    'job_title_id' => $hasVpeopleLink ? $profile->job_title_id : ($request->filled('job_title_id') ? (int) $request->input('job_title_id') : null),
+                    'position' => $hasVpeopleLink ? $profile->position : $this->organizationValue($request, 'position'),
                     'profile_summary' => $request->input('profile_summary'),
                     'technical_skills' => $this->splitList($request->input('technical_skills')),
                     'non_technical_skills' => $this->splitList($request->input('non_technical_skills')),
@@ -271,7 +288,7 @@ class CvProfileController extends Controller
                     'other_hobby' => $this->nullableTrim(data_get($request->input('hobbies', []), 'other')),
                     'talents' => $this->interestDetails($request->input('talents', [])),
                     'other_talent' => $this->nullableTrim(data_get($request->input('talents', []), 'other')),
-                ], $locationSelection));
+                ], $organizationPositionData, $locationSelection));
 
                 $this->syncEmergencyContacts($profile, $request->input('emergency_contacts', []));
                 $this->syncExperiences($profile, $request->input('experiences', []));
@@ -421,6 +438,7 @@ class CvProfileController extends Controller
                 'work_areas' => $organizationService->workAreas(),
                 'departments' => $workArea ? $organizationService->departments($workArea) : [],
                 'divisions' => $departmentId ? $organizationService->divisions($departmentId) : [],
+                'job_titles' => $organizationService->jobTitles($departmentId, $divisionId),
                 'positions' => $organizationService->positions($departmentId, $divisionId),
                 'selected_work_area' => $workArea,
                 'selected_department_id' => $departmentId,
@@ -431,7 +449,7 @@ class CvProfileController extends Controller
                 'exception' => get_class($exception),
             ]);
 
-            $organizationMasterError = 'Master organisasi V-People sedang tidak tersedia. Dropdown departemen, divisi, dan posisi belum bisa dimuat.';
+            $organizationMasterError = 'Master organisasi V-People sedang tidak tersedia. Dropdown departemen, divisi, jabatan, dan posisi belum bisa dimuat.';
         }
 
         return [$organizationOptions, $organizationMasterError];
@@ -443,6 +461,7 @@ class CvProfileController extends Controller
             'work_areas' => VPeopleOrganizationService::workAreaOptions(),
             'departments' => [],
             'divisions' => [],
+            'job_titles' => [],
             'positions' => [],
             'selected_work_area' => null,
             'selected_department_id' => null,

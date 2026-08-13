@@ -126,17 +126,21 @@ $selectedProvinceId = old('province_id', $profile->province_id);
 $selectedRegencyId = old('regency_id', $profile->regency_id);
 $selectedDistrictId = old('district_id', $profile->district_id);
 $selectedVillageId = old('village_id', $profile->village_id);
-$organizationOptions = $organizationOptions ?? ['work_areas' => [], 'departments' => [], 'divisions' => [], 'positions' => [], 'selected_work_area' => null, 'selected_department_id' => null, 'selected_division_id' => null];
+$organizationOptions = $organizationOptions ?? ['work_areas' => [], 'departments' => [], 'divisions' => [], 'job_titles' => [], 'positions' => [], 'selected_work_area' => null, 'selected_department_id' => null, 'selected_division_id' => null];
 $selectedWorkArea = old('work_area', $organizationOptions['selected_work_area'] ?? $profile->work_area);
 $selectedWorkAreaCode = \App\Services\VPeopleOrganizationService::normalizeWorkArea($selectedWorkArea);
 $selectedDepartment = old('department', $profile->department);
 $selectedDivision = old('division', $profile->division);
+$selectedJobTitle = old('job_title', $profile->job_title);
 $selectedPosition = old('position', $profile->position);
 $selectedDepartmentInOptions = collect($organizationOptions['departments'])->contains(function ($option) use ($selectedDepartment) {
 return strcasecmp($option['name'], (string) $selectedDepartment) === 0;
 });
 $selectedDivisionInOptions = collect($organizationOptions['divisions'])->contains(function ($option) use ($selectedDivision) {
 return strcasecmp($option['name'], (string) $selectedDivision) === 0;
+});
+$selectedJobTitleInOptions = collect($organizationOptions['job_titles'])->contains(function ($option) use ($selectedJobTitle) {
+return strcasecmp($option['name'], (string) $selectedJobTitle) === 0;
 });
 $selectedPositionInOptions = collect($organizationOptions['positions'])->contains(function ($option) use ($selectedPosition) {
 return strcasecmp($option['name'], (string) $selectedPosition) === 0;
@@ -768,6 +772,12 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         <p>Unit kerja, divisi, dan posisi karyawan.</p>
                                     </div>
                                 </div>
+                                @if($vpeopleNik)
+                                <div class="alert alert-info py-2">
+                                    Data organisasi mengikuti master V-People. Koreksi jabatan, level, departemen, atau divisi dilakukan melalui HR agar struktur dan approval tetap konsisten.
+                                    @if($profile->job_level_code)<span class="badge bg-primary ms-1">{{ $profile->job_level_code }}</span>@endif
+                                </div>
+                                @endif
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label cv-required-label">Area Kerja <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
@@ -799,7 +809,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label cv-required-label">Divisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
-                                        <select id="divisionSelect" name="division_choice" class="form-select @error('division') is-invalid @enderror @error('division_custom') is-invalid @enderror" data-organization-child="#positionSelect" data-organization-url="{{ route('cv.organizations.positions') }}" data-organization-placeholder="Pilih divisi" data-organization-parent="#departmentSelect" data-organization-target="#divisionHidden" data-organization-custom="#divisionCustomInput" {{ $organizationOptions['selected_department_id'] || $selectedDivision ? '' : 'disabled' }}>
+                                        <select id="divisionSelect" name="division_choice" class="form-select @error('division') is-invalid @enderror @error('division_custom') is-invalid @enderror" data-organization-child="#positionSelect" data-organization-url="{{ route('cv.organizations.positions') }}" data-organization-secondary-child="#jobTitleSelect" data-organization-secondary-url="{{ route('cv.organizations.job-titles') }}" data-organization-placeholder="Pilih divisi" data-organization-parent="#departmentSelect" data-organization-target="#divisionHidden" data-organization-custom="#divisionCustomInput" {{ $organizationOptions['selected_department_id'] || $selectedDivision ? '' : 'disabled' }}>
                                             <option value="">Pilih divisi</option>
                                             @foreach ($organizationOptions['divisions'] as $division)
                                             <option value="{{ $division['name'] }}" data-option-id="{{ $division['id'] }}" {{ strcasecmp($division['name'], (string) $selectedDivision) === 0 ? 'selected' : '' }}>
@@ -813,24 +823,39 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                         @error('division') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                         @error('division_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                     </div>
-                                    <div class="col-12">
-                                        <label class="form-label cv-required-label">Jabatan/Posisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
-                                        <div class="row g-2">
-                                            <div class="col-md-6">
-                                                <select id="positionSelect" name="position_choice" class="form-select @error('position') is-invalid @enderror @error('position_custom') is-invalid @enderror" data-organization-parent="#departmentSelect" data-organization-target="#positionHidden" data-organization-custom="#positionCustomInput" data-organization-placeholder="Pilih posisi" {{ $organizationOptions['selected_department_id'] || $selectedPosition ? '' : 'disabled' }}>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Jabatan</label>
+                                        <span class="badge badge-vpeople ms-1">V-People</span>
+                                        <select id="jobTitleSelect" name="job_title_choice" class="form-select @error('job_title') is-invalid @enderror" data-organization-target="#jobTitleHidden" data-organization-id-target="#jobTitleIdHidden" data-organization-placeholder="Pilih jabatan" {{ $vpeopleNik ? 'disabled' : ($organizationOptions['selected_department_id'] || $selectedJobTitle ? '' : 'disabled') }}>
+                                            <option value="">Pilih jabatan</option>
+                                            @foreach ($organizationOptions['job_titles'] as $jobTitleOption)
+                                            <option value="{{ $jobTitleOption['name'] }}" data-option-id="{{ $jobTitleOption['id'] }}" {{ strcasecmp($jobTitleOption['name'], (string) $selectedJobTitle) === 0 ? 'selected' : '' }}>
+                                                {{ $jobTitleOption['name'] }}
+                                            </option>
+                                            @endforeach
+                                            @if ($selectedJobTitle && !$selectedJobTitleInOptions)
+                                            <option value="{{ $selectedJobTitle }}" data-option-id="{{ $profile->job_title_id }}" selected>{{ $selectedJobTitle }}</option>
+                                            @endif
+                                        </select>
+                                        <input type="hidden" id="jobTitleHidden" name="job_title" value="{{ $selectedJobTitle }}">
+                                        <input type="hidden" id="jobTitleIdHidden" name="job_title_id" value="{{ old('job_title_id', $profile->job_title_id) }}">
+                                        @error('job_title') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label cv-required-label">Posisi <span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
+                                        <div>
+                                                <select id="positionSelect" name="position_choice" class="form-select @error('position') is-invalid @enderror @error('position_custom') is-invalid @enderror" data-organization-parent="#departmentSelect" data-organization-target="#positionHidden" data-organization-id-target="#organizationPositionIdHidden" data-organization-custom="#positionCustomInput" data-organization-placeholder="Pilih posisi" {{ $vpeopleNik ? 'disabled' : ($organizationOptions['selected_department_id'] || $selectedPosition ? '' : 'disabled') }}>
                                                     <option value="">Pilih posisi</option>
                                                     @foreach ($organizationOptions['positions'] as $positionOption)
-                                                    <option value="{{ $positionOption['name'] }}" {{ strcasecmp($positionOption['name'], (string) $selectedPosition) === 0 ? 'selected' : '' }}>
-                                                        {{ $positionOption['name'] }}
+                                                    <option value="{{ $positionOption['name'] }}" data-option-id="{{ is_numeric($positionOption['id'] ?? null) ? $positionOption['id'] : '' }}" {{ strcasecmp($positionOption['name'], (string) $selectedPosition) === 0 ? 'selected' : '' }}>
+                                                        {{ $positionOption['label'] ?? $positionOption['name'] }}
                                                     </option>
                                                     @endforeach
                                                     <option value="__custom__" {{ $selectedPositionIsCustom ? 'selected' : '' }}>Lainnya</option>
                                                 </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <input type="hidden" id="positionHidden" name="position" value="{{ $selectedPosition }}">
-                                                <input type="text" id="positionCustomInput" name="position_custom" class="form-control @error('position_custom') is-invalid @enderror" value="{{ $selectedPositionIsCustom ? $selectedPosition : old('position_custom') }}" placeholder="Isi posisi jika tidak ada di pilihan" data-organization-custom-input {{ $selectedPositionIsCustom ? '' : 'disabled hidden' }}>
-                                            </div>
+                                            <input type="hidden" id="positionHidden" name="position" value="{{ $selectedPosition }}">
+                                            <input type="hidden" id="organizationPositionIdHidden" name="organization_position_id" value="{{ old('organization_position_id', $profile->organization_position_id) }}">
+                                            <input type="text" id="positionCustomInput" name="position_custom" class="form-control mt-2 @error('position_custom') is-invalid @enderror" value="{{ $selectedPositionIsCustom ? $selectedPosition : old('position_custom') }}" placeholder="Isi posisi jika tidak ada di pilihan" data-organization-custom-input {{ $vpeopleNik || !$selectedPositionIsCustom ? 'disabled hidden' : '' }}>
                                         </div>
                                         @error('position') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                                         @error('position_custom') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror

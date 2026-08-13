@@ -91,7 +91,7 @@ class CvWizardRequiredStepValidationTest extends TestCase
             'Area Kerja',
             'Departemen',
             'Divisi',
-            'Jabatan/Posisi',
+            'Posisi',
         ] as $label) {
             $this->assertRequiredLabel($edit, $label);
         }

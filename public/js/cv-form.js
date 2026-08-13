@@ -96,7 +96,7 @@
                 { selector: '[name="work_area"]', label: 'Area kerja' },
                 { selector: '[name="department"]', label: 'Departemen' },
                 { selector: '[name="division"]', label: 'Divisi' },
-                { selector: '[name="position"]', label: 'Jabatan/posisi' },
+                { selector: '[name="position"]', label: 'Posisi' },
             ],
         },
         summary: {
@@ -437,24 +437,40 @@
     }
 
     function clearOrganizationChildren(select) {
-        var childSelector = select.dataset.organizationChild;
-        var child = childSelector ? document.querySelector(childSelector) : null;
+        organizationChildConfigs(select).forEach(function (config) {
+            var child = document.querySelector(config.selector);
 
-        if (!child) {
-            return;
-        }
+            if (child) {
+                clearOrganizationSelect(child);
+                clearOrganizationChildren(child);
+            }
+        });
+    }
 
-        clearOrganizationSelect(child);
-        clearOrganizationChildren(child);
+    function organizationChildConfigs(select) {
+        return [
+            {
+                selector: select.dataset.organizationChild,
+                url: select.dataset.organizationUrl,
+            },
+            {
+                selector: select.dataset.organizationSecondaryChild,
+                url: select.dataset.organizationSecondaryUrl,
+            },
+        ].filter(function (config) {
+            return !!config.selector;
+        });
     }
 
     function setOrganizationOptions(select, items, allowCustom) {
         setOrganizationPlaceholder(select, organizationPlaceholder(select));
 
         items.forEach(function (item) {
-            var option = new Option(item.name, item.name);
+            var option = new Option(item.label || item.name, item.name);
 
-            option.dataset.optionId = item.id;
+            if (item.id && /^\d+$/.test(String(item.id))) {
+                option.dataset.optionId = item.id;
+            }
             select.appendChild(option);
         });
 
@@ -509,8 +525,13 @@
     }
 
     function loadOrganizationChild(parentSelect) {
-        var childSelector = parentSelect.dataset.organizationChild;
-        var child = childSelector ? document.querySelector(childSelector) : null;
+        organizationChildConfigs(parentSelect).forEach(function (config) {
+            loadOrganizationChildConfig(parentSelect, config);
+        });
+    }
+
+    function loadOrganizationChildConfig(parentSelect, config) {
+        var child = config.selector ? document.querySelector(config.selector) : null;
         var params = child ? organizationRequestParams(parentSelect, child) : {};
         var hasRequiredParent = Object.keys(params).some(function (key) {
             return params[key];
@@ -523,13 +544,13 @@
         clearOrganizationSelect(child);
         clearOrganizationChildren(child);
 
-        if (!parentSelect.dataset.organizationUrl || !hasRequiredParent) {
+        if (!config.url || !hasRequiredParent) {
             return;
         }
 
         setOrganizationPlaceholder(child, 'Memuat data...');
 
-        fetch(organizationUrl(parentSelect.dataset.organizationUrl, params), {
+        fetch(organizationUrl(config.url, params), {
             headers: {
                 'Accept': 'application/json',
             },
@@ -555,6 +576,7 @@
 
     function syncOrganizationChoice(select) {
         var hidden = select && select.dataset.organizationTarget ? document.querySelector(select.dataset.organizationTarget) : null;
+        var idHidden = select && select.dataset.organizationIdTarget ? document.querySelector(select.dataset.organizationIdTarget) : null;
         var custom = select && select.dataset.organizationCustom ? document.querySelector(select.dataset.organizationCustom) : null;
         var isCustom = select && select.value === '__custom__';
 
@@ -569,6 +591,10 @@
 
         if (hidden) {
             hidden.value = isCustom && custom ? custom.value.trim() : (select.value || '');
+        }
+
+        if (idHidden) {
+            idHidden.value = isCustom ? '' : selectedOrganizationOptionId(select);
         }
     }
 

@@ -570,6 +570,8 @@ class CvDocumentTest extends TestCase
             $table->string('department')->nullable();
             $table->string('division')->nullable();
             $table->string('position')->nullable();
+            $table->string('job_title')->nullable();
+            $table->unsignedBigInteger('job_title_id')->nullable();
             $table->date('current_job_entry_date')->nullable();
             $table->text('profile_summary')->nullable();
             $table->text('technical_skills')->nullable();

@@ -62,4 +62,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cv/organizations/departments', [CvOrganizationController::class, 'departments'])->name('cv.organizations.departments');
     Route::get('/cv/organizations/divisions', [CvOrganizationController::class, 'divisions'])->name('cv.organizations.divisions');
     Route::get('/cv/organizations/positions', [CvOrganizationController::class, 'positions'])->name('cv.organizations.positions');
+    Route::get('/cv/organizations/job-titles', [CvOrganizationController::class, 'jobTitles'])->name('cv.organizations.job-titles');
 });

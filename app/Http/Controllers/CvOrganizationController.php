@@ -53,6 +53,21 @@ class CvOrganizationController extends Controller
         });
     }
 
+    public function jobTitles(Request $request, VPeopleOrganizationService $organizations): JsonResponse
+    {
+        $request->validate([
+            'department_id' => ['nullable', 'string', 'max:32'],
+            'division_id' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        return $this->safeResponse(function () use ($request, $organizations) {
+            return $organizations->jobTitles(
+                $request->query('department_id'),
+                $request->query('division_id')
+            );
+        });
+    }
+
     private function safeResponse(callable $callback): JsonResponse
     {
         try {
