@@ -184,12 +184,14 @@ class CvProfileController extends Controller
                 'work_area' => $employee['work_area'] ?: $profile->work_area,
                 'department' => $employee['department'] ?: $profile->department,
                 'division' => $employee['division'] ?: $profile->division,
-                'job_title' => $employee['job_title'] ?: $profile->job_title,
-                'position' => $employee['position'] ?: $profile->position,
-                'job_title_id' => $employee['job_title_id'],
-                'organization_position_id' => $employee['organization_position_id'],
-                'job_level_code' => $employee['job_level_code'],
-                'job_level_rank' => $employee['job_level_rank'],
+                'job_title' => $profile->job_title ?: $employee['job_title'],
+                'position' => $profile->position ?: $employee['position'],
+                'job_title_id' => $profile->job_title ? $profile->job_title_id : $employee['job_title_id'],
+                'organization_position_id' => $profile->position
+                    ? $profile->organization_position_id
+                    : $employee['organization_position_id'],
+                'job_level_code' => $profile->job_title ? $profile->job_level_code : $employee['job_level_code'],
+                'job_level_rank' => $profile->job_title ? $profile->job_level_rank : $employee['job_level_rank'],
                 'organization_updated_at' => $employee['organization_updated_at'],
                 'current_job_entry_date' => $profile->current_job_entry_date ?: $employee['entry_date'],
             ])->save();
@@ -234,9 +236,9 @@ class CvProfileController extends Controller
                     : $this->nullableTrim($request->input('address'));
                 $organizationPositionData = Schema::hasColumn('cv_profiles', 'organization_position_id')
                     ? [
-                        'organization_position_id' => $hasVpeopleLink
-                            ? $profile->organization_position_id
-                            : ($request->filled('organization_position_id') ? (int) $request->input('organization_position_id') : null),
+                        'organization_position_id' => $request->filled('organization_position_id')
+                            ? (int) $request->input('organization_position_id')
+                            : null,
                     ]
                     : [];
 
@@ -278,9 +280,9 @@ class CvProfileController extends Controller
                     'work_area' => $hasVpeopleLink ? $profile->work_area : $this->workAreaValue($request),
                     'department' => $hasVpeopleLink ? $profile->department : $this->organizationValue($request, 'department'),
                     'division' => $hasVpeopleLink ? $profile->division : $this->organizationValue($request, 'division'),
-                    'job_title' => $hasVpeopleLink ? $profile->job_title : $this->organizationValue($request, 'job_title'),
-                    'job_title_id' => $hasVpeopleLink ? $profile->job_title_id : ($request->filled('job_title_id') ? (int) $request->input('job_title_id') : null),
-                    'position' => $hasVpeopleLink ? $profile->position : $this->organizationValue($request, 'position'),
+                    'job_title' => $this->organizationValue($request, 'job_title'),
+                    'job_title_id' => $request->filled('job_title_id') ? (int) $request->input('job_title_id') : null,
+                    'position' => $this->organizationValue($request, 'position'),
                     'profile_summary' => $request->input('profile_summary'),
                     'technical_skills' => $this->splitList($request->input('technical_skills')),
                     'non_technical_skills' => $this->splitList($request->input('non_technical_skills')),

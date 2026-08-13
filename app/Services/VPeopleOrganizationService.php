@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class VPeopleOrganizationService
 {
@@ -104,62 +103,24 @@ class VPeopleOrganizationService
 
     public function jobTitles(?string $departmentId, ?string $divisionId): array
     {
-        $departmentId = $this->cleanId($departmentId);
-        $divisionId = $this->cleanId($divisionId);
+        return DB::connection('vpeople')
+            ->table('job_titles')
+            ->select(['id', 'name', 'name_zh'])
+            ->where('is_active', true)
+            ->whereNotNull('name')
+            ->whereRaw("TRIM(name) <> ''")
+            ->orderBy('name')
+            ->get()
+            ->map(function ($item) {
+                $name = trim((string) $item->name);
+                $nameZh = trim((string) $item->name_zh);
 
-        if (!$departmentId && !$divisionId) {
-            return [];
-        }
-
-        if (
-            Schema::connection('vpeople')->hasTable('organization_positions')
-            && Schema::connection('vpeople')->hasTable('job_titles')
-            && Schema::connection('vpeople')->hasTable('job_levels')
-        ) {
-            $masterQuery = DB::connection('vpeople')
-                ->table('organization_positions')
-                ->join('job_titles', 'organization_positions.job_title_id', '=', 'job_titles.id')
-                ->join('job_levels as default_levels', 'job_titles.job_level_id', '=', 'default_levels.id')
-                ->leftJoin('job_levels as override_levels', 'organization_positions.job_level_id', '=', 'override_levels.id')
-                ->select([
-                    'job_titles.id',
-                    'job_titles.name',
-                    'job_titles.name_zh',
-                    DB::raw('COALESCE(override_levels.code, default_levels.code) as level_code'),
-                    DB::raw('COALESCE(override_levels.rank, default_levels.rank) as level_rank'),
-                ])
-                ->where('organization_positions.is_active', true)
-                ->where('job_titles.is_active', true)
-                ->where(function ($query) {
-                    $query->whereNull('organization_positions.effective_from')
-                        ->orWhereDate('organization_positions.effective_from', '<=', today());
-                })
-                ->where(function ($query) {
-                    $query->whereNull('organization_positions.effective_until')
-                        ->orWhereDate('organization_positions.effective_until', '>=', today());
-                });
-
-            $divisionId
-                ? $masterQuery->where('organization_positions.divisi_id', $divisionId)
-                : $masterQuery->where('organization_positions.departemen_id', $departmentId);
-
-            return $masterQuery
-                ->distinct()
-                ->orderBy('job_titles.name')
-                ->limit(500)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => (string) $item->id,
-                        'name' => trim($item->name . ($item->name_zh ? ' ' . $item->name_zh : '')),
-                        'level_code' => $item->level_code,
-                        'level_rank' => (int) $item->level_rank,
-                    ];
-                })
-                ->toArray();
-        }
-
-        return [];
+                return [
+                    'id' => (string) $item->id,
+                    'name' => $name . ($nameZh !== '' ? ' ' . $nameZh : ''),
+                ];
+            })
+            ->toArray();
     }
 
     public function positions(?string $departmentId, ?string $divisionId): array
@@ -171,52 +132,11 @@ class VPeopleOrganizationService
             return [];
         }
 
-        if (
-            Schema::connection('vpeople')->hasTable('organization_positions')
-            && Schema::connection('vpeople')->hasColumn('organization_positions', 'position_name')
-        ) {
-            $masterQuery = DB::connection('vpeople')
-                ->table('organization_positions')
-                ->select(['id', 'code', 'position_name'])
-                ->where('is_active', true)
-                ->whereNotNull('position_name')
-                ->where('position_name', '<>', '')
-                ->where(function ($query) {
-                    $query->whereNull('effective_from')->orWhereDate('effective_from', '<=', today());
-                })
-                ->where(function ($query) {
-                    $query->whereNull('effective_until')->orWhereDate('effective_until', '>=', today());
-                });
-
-            $divisionId
-                ? $masterQuery->where('divisi_id', $divisionId)
-                : $masterQuery->where('departemen_id', $departmentId);
-
-            $masterPositions = $masterQuery
-                ->orderBy('sort_order')
-                ->orderBy('position_name')
-                ->limit(500)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'id' => (string) $item->id,
-                        'name' => trim($item->position_name),
-                        'label' => trim($item->position_name . ' (' . $item->code . ')'),
-                    ];
-                })
-                ->toArray();
-
-            if ($masterPositions) {
-                return $masterPositions;
-            }
-        }
-
         $query = DB::connection('vpeople')
             ->table('employees')
-            ->selectRaw("DISTINCT TRIM(posisi) as name")
+            ->selectRaw("DISTINCT TRIM(COALESCE(NULLIF(jabatan, ''), NULLIF(posisi, ''))) as name")
             ->where('status_resign', VPeopleService::ACTIVE_RESIGN_STATUS)
-            ->whereNotNull('posisi')
-            ->whereRaw("TRIM(posisi) <> ''");
+            ->whereRaw("TRIM(COALESCE(NULLIF(jabatan, ''), NULLIF(posisi, ''))) <> ''");
 
         if ($divisionId) {
             $query->where('divisi_id', $divisionId);
@@ -229,7 +149,7 @@ class VPeopleOrganizationService
             ->limit(200)
             ->get()
             ->map(function ($item) {
-                return ['id' => null, 'name' => $item->name, 'label' => $item->name];
+                return $this->option($item->name, $item->name);
             })
             ->toArray();
     }
