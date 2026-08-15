@@ -46,6 +46,9 @@ class EmailVerificationController extends Controller
         }
 
         $request->fulfill();
+        $request->user()->forceFill([
+            'email_verification_expires_at' => null,
+        ])->saveQuietly();
 
         return redirect()
             ->route('dashboard')

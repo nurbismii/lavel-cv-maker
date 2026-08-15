@@ -44,6 +44,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'email_verification_expires_at' => 'datetime',
         'vpeople_last_synced_at' => 'datetime',
     ];
 
@@ -54,6 +55,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function sendEmailVerificationNotification()
     {
+        $expirationMinutes = max(1, (int) config('auth.verification.expire', 60));
+
+        $this->forceFill([
+            'email_verification_expires_at' => now()->addMinutes($expirationMinutes),
+        ])->saveQuietly();
+
         $this->notify(new VerifyEmailNotification());
     }
 }

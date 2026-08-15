@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -30,16 +29,19 @@ class VerifyEmailNotification extends Notification
                 'appName' => $appName,
                 'user' => $notifiable,
                 'verificationUrl' => $this->verificationUrl($notifiable),
-                'expirationMinutes' => Config::get('auth.verification.expire', 60),
+                'expirationMinutes' => max(1, (int) Config::get('auth.verification.expire', 60)),
                 'supportEmail' => config('mail.from.address'),
             ]);
     }
 
     private function verificationUrl($notifiable): string
     {
+        $expiresAt = $notifiable->email_verification_expires_at
+            ?: now()->addMinutes(max(1, (int) Config::get('auth.verification.expire', 60)));
+
         return URL::temporarySignedRoute(
             'verification.verify',
-            Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
+            $expiresAt,
             [
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),

@@ -108,4 +108,18 @@ return [
 
     'password_timeout' => 10800,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Verification
+    |--------------------------------------------------------------------------
+    |
+    | Batas waktu ini dipakai bersama oleh signed URL verifikasi dan proses
+    | pembersihan akun yang belum menyelesaikan verifikasi email.
+    |
+    */
+
+    'verification' => [
+        'expire' => (int) env('EMAIL_VERIFICATION_EXPIRE_MINUTES', 60),
+    ],
+
 ];
