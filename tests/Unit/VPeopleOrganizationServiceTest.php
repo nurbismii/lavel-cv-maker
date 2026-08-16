@@ -38,6 +38,12 @@ class VPeopleOrganizationServiceTest extends TestCase
             $table->string('name_zh')->nullable();
             $table->boolean('is_active')->default(true);
         });
+
+        Schema::connection('vpeople')->create('divisis', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('departemen_id');
+            $table->string('nama_divisi')->nullable();
+        });
     }
 
     protected function tearDown(): void
@@ -80,6 +86,23 @@ class VPeopleOrganizationServiceTest extends TestCase
         $this->assertSame([
             ['id' => 'Operator', 'name' => 'Operator'],
             ['id' => 'Produksi', 'name' => 'Produksi'],
+        ], $options);
+    }
+
+    public function test_divisions_use_selected_department_and_ignore_empty_names(): void
+    {
+        DB::connection('vpeople')->table('divisis')->insert([
+            ['id' => 1, 'departemen_id' => 10, 'nama_divisi' => 'Produksi'],
+            ['id' => 2, 'departemen_id' => 10, 'nama_divisi' => 'Maintenance'],
+            ['id' => 3, 'departemen_id' => 20, 'nama_divisi' => 'Finance'],
+            ['id' => 4, 'departemen_id' => 10, 'nama_divisi' => ''],
+        ]);
+
+        $options = (new VPeopleOrganizationService())->divisions('10');
+
+        $this->assertSame([
+            ['id' => '2', 'name' => 'Maintenance'],
+            ['id' => '1', 'name' => 'Produksi'],
         ], $options);
     }
 }

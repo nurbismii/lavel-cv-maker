@@ -157,6 +157,16 @@ class CvWizardRequiredStepValidationTest extends TestCase
         $this->assertStringContainsString("@if (\$documentOption['required'])", $linkedDocumentUpload);
     }
 
+    public function test_organization_master_request_retries_and_ignores_stale_responses(): void
+    {
+        $script = $this->script();
+
+        $this->assertStringContainsString('function fetchOrganizationPayload(url, retriesRemaining)', $script);
+        $this->assertStringContainsString('fetchOrganizationPayload(organizationUrl(config.url, params), 1)', $script);
+        $this->assertStringContainsString('child._organizationRequestId !== requestId', $script);
+        $this->assertStringContainsString('Gagal memuat — pilih Lainnya', $script);
+    }
+
     private function assertRequiredLabel(string $contents, string $label): void
     {
         $pattern = '/<label class="form-label[^"]*"[^>]*>\s*'

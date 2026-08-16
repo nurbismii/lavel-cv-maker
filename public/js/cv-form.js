@@ -500,6 +500,41 @@
         return url + (url.indexOf('?') === -1 ? '?' : '&') + query;
     }
 
+    function fetchOrganizationPayload(url, retriesRemaining) {
+        return fetch(url, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        }).then(function (response) {
+            return response.json().catch(function () {
+                return {};
+            }).then(function (payload) {
+                if (!response.ok) {
+                    var error = new Error(payload.message || 'Gagal memuat master organisasi.');
+
+                    error.status = response.status;
+                    throw error;
+                }
+
+                return payload;
+            });
+        }).catch(function (error) {
+            var canRetry = retriesRemaining > 0 && (!error.status || error.status >= 500);
+
+            if (!canRetry) {
+                throw error;
+            }
+
+            return new Promise(function (resolve) {
+                window.setTimeout(resolve, 400);
+            }).then(function () {
+                return fetchOrganizationPayload(url, retriesRemaining - 1);
+            });
+        });
+    }
+
     function organizationRequestParams(parentSelect, child) {
         var workAreaSelect = document.querySelector('#workAreaSelect');
         var departmentSelect = document.querySelector('#departmentSelect');
@@ -537,10 +572,14 @@
         var hasRequiredParent = Object.keys(params).some(function (key) {
             return params[key];
         });
+        var requestId;
 
         if (!child) {
             return;
         }
+
+        requestId = (child._organizationRequestId || 0) + 1;
+        child._organizationRequestId = requestId;
 
         clearOrganizationSelect(child);
         clearOrganizationChildren(child);
@@ -551,26 +590,25 @@
 
         setOrganizationPlaceholder(child, 'Memuat data...');
 
-        fetch(organizationUrl(config.url, params), {
-            headers: {
-                'Accept': 'application/json',
-            },
-        })
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error('Gagal memuat master organisasi.');
+        fetchOrganizationPayload(organizationUrl(config.url, params), 1)
+            .then(function (payload) {
+                if (child._organizationRequestId !== requestId) {
+                    return;
                 }
 
-                return response.json();
-            })
-            .then(function (payload) {
                 setOrganizationOptions(child, payload.data || [], !!child.dataset.organizationCustom);
             })
             .catch(function () {
+                if (child._organizationRequestId !== requestId) {
+                    return;
+                }
+
                 setOrganizationOptions(child, [], !!child.dataset.organizationCustom);
 
                 if (child.options.length) {
-                    child.options[0].textContent = 'Gagal memuat data';
+                    child.options[0].textContent = child.dataset.organizationCustom
+                        ? 'Gagal memuat — pilih Lainnya'
+                        : 'Gagal memuat data';
                 }
             });
     }
