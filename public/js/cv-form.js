@@ -3040,8 +3040,31 @@
         var card = button.closest('.cv-linked-document');
         var list = card ? card.querySelector('[data-document-file-input-list]') : null;
         var template = list ? list.querySelector('[data-document-file-input-item]') : null;
+        var inputs = list ? Array.prototype.slice.call(list.querySelectorAll('[data-document-file-input]')) : [];
+        var emptyInput = inputs.find(function (input) {
+            return !input.files || input.files.length === 0;
+        });
+        var limit = parseInt(button.dataset.documentFileLimit || '10', 10);
 
         if (!list || !template) {
+            return;
+        }
+
+        if (emptyInput) {
+            emptyInput.click();
+            return;
+        }
+
+        if (inputs.length >= limit) {
+            if (window.Swal && typeof window.Swal.fire === 'function') {
+                window.Swal.fire({
+                    icon: 'warning',
+                    title: 'Batas file tercapai',
+                    text: 'Maksimal ' + limit + ' file dapat diunggah untuk jenis dokumen ini.',
+                    confirmButtonText: 'Mengerti',
+                });
+            }
+
             return;
         }
 
@@ -3055,6 +3078,10 @@
         }
 
         list.appendChild(item);
+
+        if (input) {
+            input.click();
+        }
     }
 
     function removeDocumentFileInput(button) {

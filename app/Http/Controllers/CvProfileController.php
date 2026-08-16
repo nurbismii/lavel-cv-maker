@@ -245,7 +245,7 @@ class CvProfileController extends Controller
                 $profile->update(array_merge([
                     'status' => CvProfile::STATUS_DRAFT,
                     'photo_path' => $photoPath,
-                    'full_name' => $request->input('full_name'),
+                    'full_name' => $request->input('full_name') ?: $profile->full_name,
                     'birth_date' => $request->input('birth_date'),
                     'ktp_number' => $this->digitsOnly($request->input('ktp_number')),
                     'family_card_number' => $this->digitsOnly($request->input('family_card_number')),
@@ -528,10 +528,10 @@ class CvProfileController extends Controller
 
             CvExperience::create([
                 'cv_profile_id' => $profile->id,
-                'position' => $item['position'] ?: null,
-                'company' => $item['company'] ?: 'PT VDNI',
-                'department' => $item['department'] ?: null,
-                'division' => $item['division'] ?: null,
+                'position' => $item['position'] ?? null,
+                'company' => $item['company'] ?? 'PT VDNI',
+                'department' => $item['department'] ?? null,
+                'division' => $item['division'] ?? null,
                 'start_month' => $this->monthDate($item['start_month'] ?? null),
                 'end_month' => !empty($item['is_current']) ? null : $this->monthDate($item['end_month'] ?? null),
                 'is_current' => !empty($item['is_current']),
@@ -554,8 +554,8 @@ class CvProfileController extends Controller
             CvEmergencyContact::create([
                 'cv_profile_id' => $profile->id,
                 'phone' => $this->digitsOnly($item['phone'] ?? null),
-                'name' => $item['name'] ?: null,
-                'relationship' => $item['relationship'] ?: null,
+                'name' => $item['name'] ?? null,
+                'relationship' => $item['relationship'] ?? null,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -573,10 +573,10 @@ class CvProfileController extends Controller
 
             CvEducation::create([
                 'cv_profile_id' => $profile->id,
-                'level' => $item['level'] ?: null,
-                'institution' => $item['institution'] ?: null,
-                'major' => $item['major'] ?: null,
-                'graduation_year' => $item['graduation_year'] ?: null,
+                'level' => $item['level'] ?? null,
+                'institution' => $item['institution'] ?? null,
+                'major' => $item['major'] ?? null,
+                'graduation_year' => $item['graduation_year'] ?? null,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -594,12 +594,12 @@ class CvProfileController extends Controller
 
             CvCertification::create([
                 'cv_profile_id' => $profile->id,
-                'name' => $item['name'] ?: null,
-                'issuer' => $item['issuer'] ?: null,
-                'year' => $item['year'] ?: null,
-                'valid_until_year' => !empty($item['is_lifetime']) ? null : ($item['valid_until_year'] ?: null),
+                'name' => $item['name'] ?? null,
+                'issuer' => $item['issuer'] ?? null,
+                'year' => $item['year'] ?? null,
+                'valid_until_year' => !empty($item['is_lifetime']) ? null : ($item['valid_until_year'] ?? null),
                 'is_lifetime' => !empty($item['is_lifetime']),
-                'type' => $item['type'] ?: CvCertification::TYPE_CERTIFICATION,
+                'type' => $item['type'] ?? CvCertification::TYPE_CERTIFICATION,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -617,8 +617,8 @@ class CvProfileController extends Controller
 
             CvLanguage::create([
                 'cv_profile_id' => $profile->id,
-                'language' => $item['language'] ?: null,
-                'level' => $item['level'] ?: null,
+                'language' => $item['language'] ?? null,
+                'level' => $item['level'] ?? null,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -636,8 +636,8 @@ class CvProfileController extends Controller
 
             CvProject::create([
                 'cv_profile_id' => $profile->id,
-                'name' => $item['name'] ?: null,
-                'year' => $item['year'] ?: null,
+                'name' => $item['name'] ?? null,
+                'year' => $item['year'] ?? null,
                 'sort_order' => $sortOrder++,
             ]);
         }
@@ -655,10 +655,10 @@ class CvProfileController extends Controller
 
             CvOrganization::create([
                 'cv_profile_id' => $profile->id,
-                'organization_name' => $item['organization_name'] ?: null,
-                'role' => $item['role'] ?: null,
-                'start_year' => $item['start_year'] ?: null,
-                'end_year' => $item['end_year'] ?: null,
+                'organization_name' => $item['organization_name'] ?? null,
+                'role' => $item['role'] ?? null,
+                'start_year' => $item['start_year'] ?? null,
+                'end_year' => $item['end_year'] ?? null,
                 'sort_order' => $sortOrder++,
             ]);
         }

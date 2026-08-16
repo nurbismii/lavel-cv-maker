@@ -116,7 +116,7 @@ class CvWizardRequiredStepValidationTest extends TestCase
 
         $this->assertStringContainsString('{ selector: \'[name="job_title_choice"]\', label: \'Jabatan\' }', $this->script());
 
-        $request = SaveCvProfileRequest::create('/cv/draft', 'POST');
+        $request = SaveCvProfileRequest::create('/cv/save-preview', 'POST');
         $this->assertContains('required', $request->rules()['job_title']);
 
         $emergencyContact = $this->viewFile('cv/partials/emergency-contact-row.blade.php');

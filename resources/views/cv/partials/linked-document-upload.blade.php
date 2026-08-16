@@ -51,7 +51,7 @@
             </button>
         </div>
     </div>
-    <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-document-file-add>
+    <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-document-file-add data-document-file-limit="10">
         <i class="bi bi-plus-lg me-1"></i> Tambah File
     </button>
     <small class="text-muted d-block mt-1">PDF/JPG/PNG, maks. 5MB per file. Tambahkan file satu per satu.</small>

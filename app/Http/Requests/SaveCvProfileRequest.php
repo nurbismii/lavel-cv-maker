@@ -144,7 +144,7 @@ class SaveCvProfileRequest extends FormRequest
             'organizations.*.end_year' => ['nullable', 'integer', 'min:1900', 'max:' . (((int) date('Y')) + 1)],
         ], $this->documentRules());
 
-        return $this->isAutosave() ? $this->relaxRequiredRules($rules) : $rules;
+        return $this->isPartialSave() ? $this->relaxRequiredRules($rules) : $rules;
     }
 
     public function messages()
@@ -203,8 +203,10 @@ class SaveCvProfileRequest extends FormRequest
             'emergency_contacts.*.phone.digits_between' => 'Nomor kontak darurat harus berisi 10 sampai 13 digit angka.',
             'emergency_contacts.*.relationship.in' => 'Hubungan kontak darurat tidak valid.',
             'photo.image' => 'File foto harus berupa gambar.',
+            'photo.uploaded' => 'Foto gagal diunggah. Periksa ukuran file dan koneksi, lalu coba kembali.',
             'photo.mimes' => 'Foto hanya boleh JPG atau PNG.',
             'photo.max' => 'Ukuran foto maksimal 2MB.',
+            'documents.*.uploaded' => 'Dokumen gagal diunggah. Periksa ukuran file dan koneksi, lalu coba kembali.',
             'documents.*.file' => 'Dokumen karyawan harus berupa file.',
             'documents.*.mimes' => 'Dokumen karyawan hanya boleh PDF, JPG, JPEG, atau PNG.',
             'documents.*.max' => 'Ukuran dokumen karyawan maksimal 5MB per file.',
@@ -254,7 +256,19 @@ class SaveCvProfileRequest extends FormRequest
                 $validator->errors()->add('npwp_number', 'No. NPWP 16 digit hanya dapat digunakan jika sama dengan No. KTP.');
             }
 
-            if ($this->isAutosave()) {
+            foreach ((array) $this->file('documents', []) as $type => $file) {
+                if (!CvDocument::isAllowedType((string) $type)) {
+                    $validator->errors()->add("documents.{$type}", 'Jenis dokumen karyawan tidak valid.');
+                }
+            }
+
+            foreach (array_keys((array) $this->input('remove_documents', [])) as $type) {
+                if (!CvDocument::isAllowedType((string) $type)) {
+                    $validator->errors()->add("remove_documents.{$type}", 'Jenis dokumen yang akan dihapus tidak valid.');
+                }
+            }
+
+            if ($this->isPartialSave()) {
                 return;
             }
 
@@ -286,18 +300,6 @@ class SaveCvProfileRequest extends FormRequest
             if (!$this->routeIs('cv.summary.generate')) {
                 $this->validateRequiredExperienceRows($validator);
                 $this->validateRequiredEducationRows($validator);
-            }
-
-            foreach ((array) $this->file('documents', []) as $type => $file) {
-                if (!CvDocument::isAllowedType((string) $type)) {
-                    $validator->errors()->add("documents.{$type}", 'Jenis dokumen karyawan tidak valid.');
-                }
-            }
-
-            foreach (array_keys((array) $this->input('remove_documents', [])) as $type) {
-                if (!CvDocument::isAllowedType((string) $type)) {
-                    $validator->errors()->add("remove_documents.{$type}", 'Jenis dokumen yang akan dihapus tidak valid.');
-                }
             }
 
             foreach ((array) $this->input('emergency_contacts', []) as $index => $contact) {
@@ -510,6 +512,11 @@ class SaveCvProfileRequest extends FormRequest
     private function isAutosave(): bool
     {
         return $this->routeIs('cv.autosave');
+    }
+
+    private function isPartialSave(): bool
+    {
+        return $this->isAutosave() || $this->routeIs('cv.draft.save');
     }
 
     private function relaxRequiredRules(array $rules): array

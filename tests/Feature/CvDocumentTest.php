@@ -71,6 +71,38 @@ class CvDocumentTest extends TestCase
         Storage::disk('local')->assertExists($document->file_path);
     }
 
+    public function test_employee_can_save_incomplete_draft_with_document_upload()
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/cv/draft', [
+            'full_name' => 'Draft Belum Lengkap',
+            'documents' => [
+                'certificate' => [
+                    UploadedFile::fake()->create('sertifikat-draft.pdf', 120, 'application/pdf'),
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('cv.edit'));
+        $response->assertSessionHasNoErrors();
+
+        $profileId = DB::table('cv_profiles')->where('user_id', $user->id)->value('id');
+
+        $this->assertDatabaseHas('cv_profiles', [
+            'id' => $profileId,
+            'full_name' => 'Draft Belum Lengkap',
+            'status' => 'draft',
+        ]);
+        $this->assertDatabaseHas('cv_documents', [
+            'cv_profile_id' => $profileId,
+            'type' => 'certificate',
+            'original_name' => 'sertifikat-draft.pdf',
+        ]);
+    }
+
     public function test_employee_can_upload_multiple_files_for_certificate_document_types()
     {
         Storage::fake('local');
@@ -300,7 +332,7 @@ class CvDocumentTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+        $response = $this->actingAs($user)->post('/cv/save-preview', $this->validCvPayload([
             'ktp_address' => '',
             'province_id' => '',
             'regency_id' => '',
@@ -366,7 +398,7 @@ class CvDocumentTest extends TestCase
         Storage::fake('local');
 
         $user = User::factory()->create();
-        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/draft', $this->validCvPayload([
+        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/save-preview', $this->validCvPayload([
             'profile_summary' => '',
             'technical_skills' => '',
             'experiences' => [[
@@ -415,7 +447,7 @@ class CvDocumentTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/draft', $this->validCvPayload([
+        $response = $this->actingAs($user)->from('/cv/edit')->post('/cv/save-preview', $this->validCvPayload([
             'documents' => ['diploma' => []],
             'remove_documents' => [
                 'diploma' => [$documentId => '1'],
