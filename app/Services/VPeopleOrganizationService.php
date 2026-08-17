@@ -11,6 +11,10 @@ class VPeopleOrganizationService
         'VDNIP' => 'PT VDNIP',
     ];
 
+    private const SUPPLEMENTAL_JOB_TITLES = [
+        ['id' => '', 'name' => 'NON-STAFF 非职员'],
+    ];
+
     public static function supportedWorkAreaCodes(): array
     {
         return array_keys(self::WORK_AREA_LABELS);
@@ -103,7 +107,7 @@ class VPeopleOrganizationService
 
     public function jobTitles(?string $departmentId, ?string $divisionId): array
     {
-        return DB::connection('vpeople')
+        $options = DB::connection('vpeople')
             ->table('job_titles')
             ->select(['id', 'name', 'name_zh'])
             ->where('is_active', true)
@@ -121,6 +125,22 @@ class VPeopleOrganizationService
                 ];
             })
             ->toArray();
+
+        foreach (self::SUPPLEMENTAL_JOB_TITLES as $supplementalOption) {
+            $alreadyExists = collect($options)->contains(function ($option) use ($supplementalOption) {
+                return strcasecmp($option['name'], $supplementalOption['name']) === 0;
+            });
+
+            if (!$alreadyExists) {
+                $options[] = $supplementalOption;
+            }
+        }
+
+        usort($options, function ($left, $right) {
+            return strcasecmp($left['name'], $right['name']);
+        });
+
+        return $options;
     }
 
     public function positions(?string $departmentId, ?string $divisionId): array

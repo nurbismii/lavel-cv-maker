@@ -145,6 +145,11 @@
             return;
         }
 
+        if (digits.length === 16) {
+            input.value = digits;
+            return;
+        }
+
         digits = digits.slice(0, 15);
         var parts = [
             digits.slice(0, 2),

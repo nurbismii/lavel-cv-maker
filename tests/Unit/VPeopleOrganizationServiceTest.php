@@ -67,9 +67,26 @@ class VPeopleOrganizationServiceTest extends TestCase
 
         $this->assertSame([
             ['id' => '14', 'name' => 'ADMIN 文员'],
+            ['id' => '', 'name' => 'NON-STAFF 非职员'],
             ['id' => '11', 'name' => 'PENGAWAS 班长'],
             ['id' => '13', 'name' => 'STAFF 职员'],
             ['id' => '4', 'name' => 'SUPERVISOR 调度'],
+        ], $options);
+    }
+
+    public function test_supplemental_job_title_does_not_duplicate_an_existing_master_title(): void
+    {
+        DB::connection('vpeople')->table('job_titles')->insert([
+            'id' => 15,
+            'name' => 'NON-STAFF',
+            'name_zh' => '非职员',
+            'is_active' => true,
+        ]);
+
+        $options = (new VPeopleOrganizationService())->jobTitles(null, null);
+
+        $this->assertSame([
+            ['id' => '15', 'name' => 'NON-STAFF 非职员'],
         ], $options);
     }
 

@@ -404,7 +404,7 @@ $hiddenMissingCompletionCount = max(0, $missingCompletionItems->count() - $visib
                                             <div class="cv-field-with-document">
                                                 <div class="mb-2">
                                                     <label class="form-label" for="npwp_number">No. NPWP<span class="required-indicator" aria-hidden="true">*</span><span class="visually-hidden"> wajib diisi</span></label>
-                                                    <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="20" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
+                                                    <input id="npwp_number" type="text" name="npwp_number" inputmode="numeric" maxlength="21" class="form-control @error('npwp_number') is-invalid @enderror" value="{{ old('npwp_number', $profile->npwp_number) }}" placeholder="12.345.678.9-012.345" data-npwp-input data-ktp-number-input="[name='ktp_number']">
                                                     @error('npwp_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                                 </div>
                                                 @include('cv.partials.linked-document-upload', ['documentType' => \App\Models\CvDocument::TYPE_NPWP])

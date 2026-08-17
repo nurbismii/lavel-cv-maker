@@ -159,6 +159,39 @@ class CvDocumentTest extends TestCase
         ]);
     }
 
+    public function test_employee_can_use_matching_16_digit_ktp_number_as_npwp_number()
+    {
+        $user = User::factory()->create();
+        $identityNumber = '1234567890123456';
+
+        $response = $this->actingAs($user)->post('/cv/draft', $this->validCvPayload([
+            'ktp_number' => $identityNumber,
+            'npwp_number' => '1234 5678 9012 3456',
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+        $response->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('cv_profiles', [
+            'user_id' => $user->id,
+            'ktp_number' => $identityNumber,
+            'npwp_number' => $identityNumber,
+        ]);
+    }
+
+    public function test_employee_cannot_use_a_different_16_digit_number_as_npwp_number()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->from(route('cv.edit'))->post('/cv/draft', $this->validCvPayload([
+            'ktp_number' => '1234567890123456',
+            'npwp_number' => '9876543210987654',
+        ]));
+
+        $response->assertRedirect(route('cv.edit'));
+        $response->assertSessionHasErrors('npwp_number');
+    }
+
     public function test_employee_can_view_own_document_inline()
     {
         Storage::fake('local');
