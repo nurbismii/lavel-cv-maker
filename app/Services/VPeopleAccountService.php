@@ -155,6 +155,65 @@ class VPeopleAccountService
         ];
     }
 
+    public function passwordResetAccount(User $user): array
+    {
+        if (!$user->vpeople_nik_encrypted) {
+            throw new VPeopleAccountException('Akun Vitae belum terhubung ke V-People.');
+        }
+
+        try {
+            $nik = Crypt::decryptString($user->vpeople_nik_encrypted);
+        } catch (Throwable $exception) {
+            throw new VPeopleAccountException('Data penghubung akun V-People tidak valid.');
+        }
+
+        $accounts = DB::connection('vpeople')->table('users')
+            ->where('nik_karyawan', $nik)
+            ->get(['id', 'email', 'password', 'updated_at']);
+
+        if ($accounts->count() !== 1) {
+            throw new VPeopleAccountException('Akun V-People tidak ditemukan atau tidak unik.');
+        }
+
+        $account = $accounts->first();
+        if (strtolower(trim((string) $account->email)) !== strtolower(trim((string) $user->email))) {
+            throw new VPeopleAccountException('Email akun Vitae dan V-People tidak sesuai.');
+        }
+
+        return [
+            'id' => (string) $account->id,
+            'password' => (string) $account->password,
+            'updated_at' => $account->updated_at,
+        ];
+    }
+
+    public function replacePasswordHash(array $account, string $newHash): void
+    {
+        $updated = DB::connection('vpeople')->table('users')
+            ->where('id', $account['id'])
+            ->where('password', $account['password'])
+            ->update(['password' => $newHash, 'updated_at' => now()]);
+
+        if ($updated !== 1) {
+            throw new VPeopleAccountException('Password V-People berubah bersamaan atau tidak dapat diperbarui.');
+        }
+    }
+
+    public function restorePasswordHash(array $account, string $failedHash): void
+    {
+        $updated = DB::connection('vpeople')->table('users')
+            ->where('id', $account['id'])
+            ->where('password', $failedHash)
+            ->update([
+                'password' => $account['password'],
+                'updated_at' => $account['updated_at'],
+            ]);
+
+        if ($updated !== 1) {
+            throw new VPeopleAccountException('Pemulihan password V-People gagal.');
+        }
+    }
+
     public function authenticate(string $identifier, string $password): ?array
     {
         $identifier = strtolower(trim($identifier));

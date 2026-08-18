@@ -60,11 +60,16 @@
                     </div>
                 </div>
 
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
-                    <label class="form-check-label" for="remember">
-                        Ingat saya
-                    </label>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="remember">
+                            Ingat saya
+                        </label>
+                    </div>
+                    <a href="{{ route('password.request') }}" class="btn btn-link link-primary fw-semibold d-inline-flex align-items-center px-2 py-2" style="min-height: 44px">
+                        <i class="bi bi-key me-1" aria-hidden="true"></i>Lupa password?
+                    </a>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100" data-loading-text="Memeriksa akun...">
